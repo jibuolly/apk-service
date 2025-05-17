@@ -11,3 +11,6 @@ async def receive_form_data(
 ):
     print("Received:", site_url, brand_color, email)
     return JSONResponse(content={"status": "success", "message": "Data received"})
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080)
