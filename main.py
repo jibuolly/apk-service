@@ -1,16 +1,29 @@
-from fastapi import FastAPI, Form
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 app = FastAPI()
 
+# Allow all origins for testing
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can replace this with your domain for security
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+def read_root():
+    return {"message": "FastAPI is running successfully!"}
+
+# DEBUG VERSION: Log whatever data Fluent Forms sends
 @app.post("/submit")
-async def receive_form_data(
-    site_url: str = Form(...),
-    brand_color: str = Form(...),
-    email: str = Form(...)
-):
-    print("Received:", site_url, brand_color, email)
-    return JSONResponse(content={"status": "success", "message": "Data received"})
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+async def debug_submit(request: Request):
+    try:
+        data = await request.json()
+        print("Received raw data:", data)
+        return {"message": "Data received", "data": data}
+    except Exception as e:
+        print("Error parsing data:", e)
+        return {"error": "Invalid JSON", "details": str(e)}
