@@ -6,8 +6,8 @@ app = FastAPI()
 @app.post("/submit")
 async def submit(request: Request):
     try:
-        data = await request.json()
-        print("✅ Received JSON data:", data)
+        body = await request.body()
+        print("✅ Raw body received:", body.decode("utf-8"))
         return JSONResponse(content={"message": "Data received successfully!"})
     except Exception as e:
         print("❌ Error parsing request:", str(e))
