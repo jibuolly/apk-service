@@ -119,4 +119,6 @@ async def submit(request: Request):
         icon_url = f"https://apk-service-production.up.railway.app/output/{icon_filename}"
         splash_url = f"https://apk-service-production.up.railway.app/output/{splash_filename}"
 
-        print(f"✅ App
+        print(f"✅ App name: {app_name}")
+        print(f"✅ Icon URL: {icon_url}")
+        print(f"✅ Splash URL: {splash_url}")
