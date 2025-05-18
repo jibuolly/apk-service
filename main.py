@@ -86,4 +86,8 @@ async def submit(request: Request):
         print(f"✅ Splash URL: {splash_url}")
 
         return JSONResponse(content={
-            "message":
+            "message": "Assets generated successfully!",
+            "app_name": app_name,
+            "icon_url": icon_url,
+            "splash_url": splash_url
+        })
