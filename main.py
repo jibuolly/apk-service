@@ -91,3 +91,7 @@ async def submit(request: Request):
             "icon_url": icon_url,
             "splash_url": splash_url
         })
+
+    except Exception as e:
+        print("❌ Error:", str(e))
+        return JSONResponse(content={"error": "Something went wrong"}, status_code=500)
