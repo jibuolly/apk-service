@@ -7,11 +7,11 @@ import os
 
 app = FastAPI()
 
-# Create output directory before mounting
+# Ensure 'output' folder exists before mounting
 if not os.path.exists("output"):
     os.makedirs("output")
 
-# Serve static files from /output
+# Mount output folder for direct image access
 app.mount("/output", StaticFiles(directory="output"), name="output")
 
 def extract_domain(website_url):
@@ -26,14 +26,17 @@ def get_text_size(draw, text, font):
     height = bbox[3] - bbox[1]
     return width, height
 
+def load_font(size):
+    try:
+        return ImageFont.truetype("Font.ttf", size)
+    except:
+        return ImageFont.load_default()
+
 def create_icon(domain_letter, brand_color, filename):
     size = (512, 512)
     image = Image.new("RGB", size, brand_color)
     draw = ImageDraw.Draw(image)
-    try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 300)
-    except:
-        font = ImageFont.load_default()
+    font = load_font(300)
     w, h = get_text_size(draw, domain_letter, font)
     draw.text(((size[0] - w) / 2, (size[1] - h) / 2), domain_letter, fill="white", font=font)
     image.save(filename)
@@ -42,10 +45,7 @@ def create_splash(text, brand_color, filename):
     size = (1280, 1920)
     image = Image.new("RGB", size, brand_color)
     draw = ImageDraw.Draw(image)
-    try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 250)
-    except:
-        font = ImageFont.load_default()
+    font = load_font(250)
     w, h = get_text_size(draw, text, font)
     draw.text(((size[0] - w) / 2, (size[1] - h) / 2), text, fill="white", font=font)
     image.save(filename)
@@ -73,8 +73,8 @@ async def submit(request: Request):
         create_icon(domain[0].upper(), brand_color, icon_path)
         create_splash(domain.upper(), brand_color, splash_path)
 
-        icon_url = f"https://app.jibuolly.com/output/{icon_filename}"
-        splash_url = f"https://app.jibuolly.com/output/{splash_filename}"
+        icon_url = f"https://apk-service-production.up.railway.app/output/{icon_filename}"
+        splash_url = f"https://apk-service-production.up.railway.app/output/{splash_filename}"
 
         print(f"✅ App name: {app_name}")
         print(f"✅ Icon URL: {icon_url}")
