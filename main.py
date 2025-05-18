@@ -12,6 +12,12 @@ def extract_domain(website_url):
     domain = domain.replace("www.", "").split('.')[0]
     return domain
 
+def get_text_size(draw, text, font):
+    bbox = draw.textbbox((0, 0), text, font=font)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    return width, height
+
 def create_icon(domain_letter, brand_color, filename):
     size = (512, 512)
     image = Image.new("RGB", size, brand_color)
@@ -22,7 +28,7 @@ def create_icon(domain_letter, brand_color, filename):
     except:
         font = ImageFont.load_default()
 
-    w, h = draw.textsize(domain_letter, font=font)
+    w, h = get_text_size(draw, domain_letter, font)
     draw.text(((size[0] - w) / 2, (size[1] - h) / 2), domain_letter, fill="white", font=font)
     image.save(filename)
 
@@ -36,7 +42,7 @@ def create_splash(text, brand_color, filename):
     except:
         font = ImageFont.load_default()
 
-    w, h = draw.textsize(text, font=font)
+    w, h = get_text_size(draw, text, font)
     draw.text(((size[0] - w) / 2, (size[1] - h) / 2), text, fill="white", font=font)
     image.save(filename)
 
