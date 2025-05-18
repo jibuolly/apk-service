@@ -46,14 +46,14 @@ def create_icon(domain_letter, brand_color, filename):
     size = (512, 512)
     image = Image.new("RGB", size, brand_color)
     draw = ImageDraw.Draw(image)
-    font = load_font(300)
+    font = load_font(350)
     text_color = get_contrast_text_color(brand_color)
 
     w, h = get_text_size(draw, domain_letter, font)
     ascent, descent = font.getmetrics()
     total_height = ascent + descent
     x = (size[0] - w) / 2
-    y = (size[1] - total_height) / 2 + (ascent - h) / 2 - 30  # Shift up manually
+    y = (size[1] - total_height) / 2 + (ascent - h) / 2 - 37  # Shift up manually
 
     draw.text((x, y), domain_letter, fill=text_color, font=font)
     image.save(filename)
