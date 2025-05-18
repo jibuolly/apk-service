@@ -53,7 +53,7 @@ def create_icon(domain_letter, brand_color, filename):
     ascent, descent = font.getmetrics()
     total_height = ascent + descent
     x = (size[0] - w) / 2
-    y = (size[1] - total_height) / 2 + (ascent - h) / 2
+    y = (size[1] - total_height) / 2 + (ascent - h) / 2 - 15  # Shift up manually
 
     draw.text((x, y), domain_letter, fill=text_color, font=font)
     image.save(filename)
