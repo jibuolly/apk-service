@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from urllib.parse import parse_qs, urlparse
 from PIL import Image, ImageDraw, ImageFont
 import os
 
 app = FastAPI()
+
+# Mount static directory to serve images
+app.mount("/output", StaticFiles(directory="output"), name="output")
 
 def extract_domain(website_url):
     parsed = urlparse(website_url)
@@ -61,32 +65,21 @@ async def submit(request: Request):
         domain = extract_domain(website_url)
         app_name = f"com.{domain}.android"
 
-        icon_path = f"output/{domain}-512x512.png"
-        splash_path = f"output/{domain}-splash-1280x1920.png"
         os.makedirs("output", exist_ok=True)
+        icon_filename = f"{domain}-512x512.png"
+        splash_filename = f"{domain}-splash-1280x1920.png"
+        icon_path = f"output/{icon_filename}"
+        splash_path = f"output/{splash_filename}"
 
         create_icon(domain[0].upper(), brand_color, icon_path)
         create_splash(domain.upper(), brand_color, splash_path)
 
+        icon_url = f"https://app.jibuolly.com/output/{icon_filename}"
+        splash_url = f"https://app.jibuolly.com/output/{splash_filename}"
+
         print(f"✅ App name: {app_name}")
-        print(f"✅ Icon saved: {icon_path}")
-        print(f"✅ Splash saved: {splash_path}")
+        print(f"✅ Icon URL: {icon_url}")
+        print(f"✅ Splash URL: {splash_url}")
 
         return JSONResponse(content={
-            "message": "Assets generated successfully!",
-            "app_name": app_name,
-            "icon_path": icon_path,
-            "splash_path": splash_path
-        })
-
-    except Exception as e:
-        print("❌ Error:", str(e))
-        return JSONResponse(content={"error": "Something went wrong"}, status_code=500)
-
-@app.get("/")
-async def root():
-    return {"message": "API is running!"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+            "message":
