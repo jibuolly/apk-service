@@ -1,41 +1,86 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, urlparse
+from PIL import Image, ImageDraw, ImageFont
+import os
 
 app = FastAPI()
+
+def extract_domain(website_url):
+    parsed = urlparse(website_url)
+    domain = parsed.netloc or parsed.path
+    domain = domain.replace("www.", "").split('.')[0]
+    return domain
+
+def create_icon(domain_letter, brand_color, filename):
+    size = (512, 512)
+    image = Image.new("RGB", size, brand_color)
+    draw = ImageDraw.Draw(image)
+
+    try:
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 300)
+    except:
+        font = ImageFont.load_default()
+
+    w, h = draw.textsize(domain_letter, font=font)
+    draw.text(((size[0] - w) / 2, (size[1] - h) / 2), domain_letter, fill="white", font=font)
+    image.save(filename)
+
+def create_splash(text, brand_color, filename):
+    size = (1280, 1920)
+    image = Image.new("RGB", size, brand_color)
+    draw = ImageDraw.Draw(image)
+
+    try:
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 250)
+    except:
+        font = ImageFont.load_default()
+
+    w, h = draw.textsize(text, font=font)
+    draw.text(((size[0] - w) / 2, (size[1] - h) / 2), text, fill="white", font=font)
+    image.save(filename)
 
 @app.post("/submit")
 async def submit(request: Request):
     try:
-        # Get raw body and decode to string
         body = await request.body()
         decoded = body.decode("utf-8")
         print("✅ Raw body received:", decoded)
 
-        # Parse the URL-encoded form data
         parsed_data = parse_qs(decoded)
-
-        # Extract specific values
         email = parsed_data.get("email", [""])[0]
         website_url = parsed_data.get("website_url", [""])[0]
         brand_color = parsed_data.get("brand_color", [""])[0]
 
-        # Log the clean values
-        print("✅ Parsed Data:")
-        print("   📧 Email:", email)
-        print("   🌐 Website URL:", website_url)
-        print("   🎨 Brand Color:", brand_color)
+        domain = extract_domain(website_url)
+        app_name = f"com.{domain}.android"
 
-        return JSONResponse(content={"message": "Data received successfully!"})
+        icon_path = f"output/{domain}-512x512.png"
+        splash_path = f"output/{domain}-splash-1280x1920.png"
+        os.makedirs("output", exist_ok=True)
+
+        create_icon(domain[0].upper(), brand_color, icon_path)
+        create_splash(domain.upper(), brand_color, splash_path)
+
+        print(f"✅ App name: {app_name}")
+        print(f"✅ Icon saved: {icon_path}")
+        print(f"✅ Splash saved: {splash_path}")
+
+        return JSONResponse(content={
+            "message": "Assets generated successfully!",
+            "app_name": app_name,
+            "icon_path": icon_path,
+            "splash_path": splash_path
+        })
+
     except Exception as e:
-        print("❌ Error parsing request:", str(e))
-        return JSONResponse(content={"error": "Invalid request"}, status_code=400)
+        print("❌ Error:", str(e))
+        return JSONResponse(content={"error": "Something went wrong"}, status_code=500)
 
 @app.get("/")
 async def root():
     return {"message": "API is running!"}
 
-# Run on Railway's expected port
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
