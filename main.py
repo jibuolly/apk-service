@@ -8,6 +8,10 @@ import os
 app = FastAPI()
 
 # Mount static directory to serve images
+# Ensure the 'output' folder exists before mounting it
+if not os.path.exists("output"):
+    os.makedirs("output")
+
 app.mount("/output", StaticFiles(directory="output"), name="output")
 
 def extract_domain(website_url):
