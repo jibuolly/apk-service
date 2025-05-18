@@ -1,4 +1,4 @@
 fastapi
 uvicorn
 python-multipart
-Pillow
+Pillow>=9.2.0
