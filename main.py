@@ -7,11 +7,11 @@ import os
 
 app = FastAPI()
 
-# Mount static directory to serve images
-# Ensure the 'output' folder exists before mounting it
+# Create output directory before mounting
 if not os.path.exists("output"):
     os.makedirs("output")
 
+# Serve static files from /output
 app.mount("/output", StaticFiles(directory="output"), name="output")
 
 def extract_domain(website_url):
@@ -30,12 +30,10 @@ def create_icon(domain_letter, brand_color, filename):
     size = (512, 512)
     image = Image.new("RGB", size, brand_color)
     draw = ImageDraw.Draw(image)
-
     try:
         font = ImageFont.truetype("DejaVuSans-Bold.ttf", 300)
     except:
         font = ImageFont.load_default()
-
     w, h = get_text_size(draw, domain_letter, font)
     draw.text(((size[0] - w) / 2, (size[1] - h) / 2), domain_letter, fill="white", font=font)
     image.save(filename)
@@ -44,12 +42,10 @@ def create_splash(text, brand_color, filename):
     size = (1280, 1920)
     image = Image.new("RGB", size, brand_color)
     draw = ImageDraw.Draw(image)
-
     try:
         font = ImageFont.truetype("DejaVuSans-Bold.ttf", 250)
     except:
         font = ImageFont.load_default()
-
     w, h = get_text_size(draw, text, font)
     draw.text(((size[0] - w) / 2, (size[1] - h) / 2), text, fill="white", font=font)
     image.save(filename)
@@ -69,7 +65,6 @@ async def submit(request: Request):
         domain = extract_domain(website_url)
         app_name = f"com.{domain}.android"
 
-        os.makedirs("output", exist_ok=True)
         icon_filename = f"{domain}-512x512.png"
         splash_filename = f"{domain}-splash-1280x1920.png"
         icon_path = f"output/{icon_filename}"
@@ -94,4 +89,12 @@ async def submit(request: Request):
 
     except Exception as e:
         print("❌ Error:", str(e))
-        return JSONResponse(content={"error": "Something went wrong"}, status_code=500)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.get("/")
+async def root():
+    return {"message": "API is running!"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080)
