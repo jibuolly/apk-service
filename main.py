@@ -1,127 +1,116 @@
+import os
+import shutil
+import subprocess
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from urllib.parse import parse_qs, urlparse
+from pydantic import BaseModel
+from urllib.parse import urlparse
 from PIL import Image, ImageDraw, ImageFont
-import os
+import re
 
 app = FastAPI()
 
-# Ensure output folder exists
-if not os.path.exists("output"):
-    os.makedirs("output")
+OUTPUT_DIR = "output"
+TEMPLATE_DIR = "apk-template/app/src/main"
+APK_OUTPUT_PATH = "apk-template/app/build/outputs/apk/debug/app-debug.apk"
 
-# Mount /output for image access
-app.mount("/output", StaticFiles(directory="output"), name="output")
-
-# --- Utility functions ---
-
-def extract_domain(website_url):
-    parsed = urlparse(website_url)
-    domain = parsed.netloc or parsed.path
-    domain = domain.replace("www.", "").split('.')[0]
-    return domain
-
-def load_font(size):
-    try:
-        return ImageFont.truetype("Font.ttf", size)
-    except:
-        return ImageFont.load_default()
-
-def get_text_size(draw, text, font):
-    bbox = draw.textbbox((0, 0), text, font=font)
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-    return width, height
-
-def get_contrast_text_color(hex_color):
-    hex_color = hex_color.lstrip('#')
-    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+# Utility to decide text color (black/white) based on brand color
+def get_contrast_color(hex_color):
+    hex_color = hex_color.lstrip("#")
+    r, g, b = [int(hex_color[i:i + 2], 16) for i in (0, 2, 4)]
     brightness = (r * 299 + g * 587 + b * 114) / 1000
-    return "white" if brightness < 128 else "black"
-
-# --- Image generators ---
-
-def create_icon(domain_letter, brand_color, filename):
-    size = (512, 512)
-    image = Image.new("RGB", size, brand_color)
-    draw = ImageDraw.Draw(image)
-    font = load_font(350)
-    text_color = get_contrast_text_color(brand_color)
-
-    w, h = get_text_size(draw, domain_letter, font)
-    ascent, descent = font.getmetrics()
-    total_height = ascent + descent
-    x = (size[0] - w) / 2
-    y = (size[1] - total_height) / 2 + (ascent - h) / 2 - 37  # Shift up manually
-
-    draw.text((x, y), domain_letter, fill=text_color, font=font)
-    image.save(filename)
-
-def create_splash(text, brand_color, filename):
-    size = (1280, 1920)
-    image = Image.new("RGB", size, brand_color)
-    draw = ImageDraw.Draw(image)
-    font = load_font(200)
-    text_color = get_contrast_text_color(brand_color)
-
-    w, h = get_text_size(draw, text, font)
-    ascent, descent = font.getmetrics()
-    total_height = ascent + descent
-    x = (size[0] - w) / 2
-    y = (size[1] - total_height) / 2 + (ascent - h) / 2
-
-    draw.text((x, y), text, fill=text_color, font=font)
-    image.save(filename)
-
-# --- Submission route ---
+    return "#000000" if brightness > 186 else "#FFFFFF"
 
 @app.post("/submit")
-async def submit(request: Request):
+async def handle_submit(request: Request):
     try:
         body = await request.body()
-        decoded = body.decode("utf-8")
-        print("✅ Raw body received:", decoded)
+        print("✅ Raw body received:", body.decode("utf-8"))
 
-        parsed_data = parse_qs(decoded)
-        email = parsed_data.get("email", [""])[0]
-        website_url = parsed_data.get("website_url", [""])[0]
-        brand_color = parsed_data.get("brand_color", [""])[0]
+        form = await request.form()
+        email = form.get("email")
+        website_url = form.get("website_url")
+        brand_color = form.get("brand_color", "#000000")
 
-        domain = extract_domain(website_url)
-        app_name = f"com.{domain}.android"
+        # Validate and parse site name
+        site_name = re.sub(r"^www\.", "", urlparse(website_url).netloc).split(".")[0].lower()
+        app_label = site_name.capitalize()
+        app_package = f"com.{site_name}.android"
 
-        icon_filename = f"{domain}-512x512.png"
-        splash_filename = f"{domain}-splash-1280x1920.png"
-        icon_path = f"output/{icon_filename}"
-        splash_path = f"output/{splash_filename}"
+        print(f"✅ App name: {app_package}")
 
-        create_icon(domain[0].upper(), brand_color, icon_path)
-        create_splash(domain.upper(), brand_color, splash_path)
+        # Prepare output dir
+        if os.path.exists(OUTPUT_DIR):
+            shutil.rmtree(OUTPUT_DIR)
+        os.makedirs(OUTPUT_DIR)
 
-        icon_url = f"https://apk-service-production.up.railway.app/output/{icon_filename}"
-        splash_url = f"https://apk-service-production.up.railway.app/output/{splash_filename}"
+        # Icon
+        icon_path = f"{OUTPUT_DIR}/{site_name}-512x512.png"
+        img = Image.new("RGB", (512, 512), color=brand_color)
+        draw = ImageDraw.Draw(img)
+        font = ImageFont.truetype("arial.ttf", 350)
+        text = site_name[0].upper()
+        w, h = draw.textsize(text, font=font)
+        draw.text(((512 - w) / 2, (512 - h) / 2 - 37), text, fill=get_contrast_color(brand_color), font=font)
+        img.save(icon_path)
+        print(f"✅ Icon saved: {icon_path}")
 
-        print(f"✅ App name: {app_name}")
-        print(f"✅ Icon URL: {icon_url}")
-        print(f"✅ Splash URL: {splash_url}")
+        # Splash
+        splash_path = f"{OUTPUT_DIR}/{site_name}-splash-1280x1920.png"
+        splash = Image.new("RGB", (1280, 1920), color=brand_color)
+        draw = ImageDraw.Draw(splash)
+        font = ImageFont.truetype("arial.ttf", 250)
+        text = site_name.upper()
+        w, h = draw.textsize(text, font=font)
+        draw.text(((1280 - w) / 2, (1920 - h) / 2), text, fill=get_contrast_color(brand_color), font=font)
+        splash.save(splash_path)
+        print(f"✅ Splash saved: {splash_path}")
+
+        # Apply changes to template
+        strings_xml = os.path.join(TEMPLATE_DIR, "res/values/strings.xml")
+        manifest_xml = os.path.join(TEMPLATE_DIR, "AndroidManifest.xml")
+        main_activity = os.path.join(TEMPLATE_DIR, "java/com/wixify/android/MainActivity.java")
+
+        with open(strings_xml, "w") as f:
+            f.write(f"""<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">{app_label}</string>
+</resources>
+""")
+
+        with open(manifest_xml, "r") as f:
+            manifest = f.read()
+        manifest = manifest.replace('package="com.wixify.android"', f'package="{app_package}"')
+        with open(manifest_xml, "w") as f:
+            f.write(manifest)
+
+        with open(main_activity, "r") as f:
+            code = f.read()
+        code = re.sub(r'mWebView\.loadUrl\(".*?"\)', f'mWebView.loadUrl("{website_url}")', code)
+        with open(main_activity, "w") as f:
+            f.write(code)
+
+        # Copy images to mipmap folder
+        shutil.copy(icon_path, os.path.join(TEMPLATE_DIR, "res/mipmap-hdpi/ic_launcher.png"))
+        shutil.copy(splash_path, os.path.join(TEMPLATE_DIR, "res/drawable/splash.png"))
+
+        # Build APK
+        result = subprocess.run(["./gradlew", "assembleDebug"], cwd="apk-template", capture_output=True, text=True)
+        if result.returncode != 0:
+            print("❌ Build failed:")
+            print(result.stdout)
+            print(result.stderr)
+            return JSONResponse(status_code=500, content={"error": "APK build failed"})
+
+        print("✅ APK build completed.")
+
+        # Email logic comes next in step 3...
 
         return JSONResponse(content={
-            "message": "Assets generated successfully!",
-            "app_name": app_name,
-            "icon_url": icon_url,
-            "splash_url": splash_url
+            "message": "APK built successfully",
+            "apk_path": APK_OUTPUT_PATH
         })
 
     except Exception as e:
-        print("❌ Error:", str(e))
-        return JSONResponse(content={"error": str(e)}, status_code=500)
-
-# --- Health check route ---
-@app.get("/")
-async def root():
-    return {"message": "API is running!"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+        print("❌ Exception:", e)
+        return JSONResponse(status_code=500, content={"error": str(e)})
