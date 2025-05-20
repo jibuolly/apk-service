@@ -101,3 +101,7 @@ async def handle_form(request: Request):
         "message": "APK built successfully",
         "apk_url": f"/output/{site_name}.apk"
     })
+
+    if __name__ == "__main__":
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=8080)
