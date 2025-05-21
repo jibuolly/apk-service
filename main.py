@@ -125,3 +125,5 @@ async def handle_form(request: Request):
         "message": "APK built successfully",
         "apk_url": f"/output/{site_name}.apk"
     })
+
+    # Trigger GitHub Actions workflow
