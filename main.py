@@ -122,18 +122,6 @@ async def handle_form(request: Request):
 
     print("✅ Updated package name and URL")
 
-    # Step 5: Build APK
-    subprocess.run(["chmod", "+x", "./gradlew"], check=True)
-    result = subprocess.run(["./gradlew", "assembleDebug"], capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print("❌ Build failed:")
-        print(result.stdout)
-        print(result.stderr)
-        return JSONResponse(status_code=500, content={"error": "APK build failed"})
-
-    print("✅ APK build successful")
-
     # Step 6: Locate the APK
     apk_path = app_dir / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
     if not apk_path.exists():
