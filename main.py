@@ -75,21 +75,38 @@ async def handle_form(request: Request):
     app_dir = working_dir / "apk-template"
     os.chdir(app_dir)
 
-    # Step 3: Download or copy icon and splash
-    icon_url = f"https://apk-service-production.up.railway.app/output/{site_name}-512x512.png"
-    splash_url = f"https://apk-service-production.up.railway.app/output/{site_name}-splash-1280x1920.png"
+    # Step 3: Generate and copy icon and splash
+    icon_path = output_dir / f"{site_name}-512x512.png"
+    splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
+
+    if not icon_path.exists():
+        # Generate icon if not found
+        icon_img = Image.new("RGB", (512, 512), color=brand_color)
+        draw_icon = ImageDraw.Draw(icon_img)
+        font_icon = ImageFont.load_default()
+        draw_icon.text((180, 240), site_name[:1].upper(), font=font_icon, fill="white")
+        icon_img.save(icon_path)
+        print(f"✅ Icon created at: {icon_path}")
+
+    if not splash_path.exists():
+        # Generate splash if not found
+        splash_img = Image.new("RGB", (1280, 1920), color=brand_color)
+        draw_splash = ImageDraw.Draw(splash_img)
+        font_splash = ImageFont.load_default()
+        draw_splash.text((500, 900), app_label, font=font_splash, fill="white")
+        splash_img.save(splash_path)
+        print(f"✅ Splash created at: {splash_path}")
 
     icon_target = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
     splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
     splash_target.parent.mkdir(parents=True, exist_ok=True)
 
-    # Copy icon and splash from /app/output/ folder
-    shutil.copy(f"/app/output/{site_name}-512x512.png", icon_target)
-    shutil.copy(f"/app/output/{site_name}-splash-1280x1920.png", splash_target)
+    shutil.copy(icon_path, icon_target)
+    shutil.copy(splash_path, splash_target)
 
     print(f"✅ Copied icon to {icon_target}")
     print(f"✅ Copied splash to {splash_target}")
-
+    
     # Step 4: Update manifest and main activity
     manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
     main_activity_path = list(app_dir.glob("**/MainActivity.java"))[0]
