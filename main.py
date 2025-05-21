@@ -66,14 +66,20 @@ async def handle_form(request: Request):
     app_dir = working_dir / "apk-template"
     os.chdir(app_dir)
 
-    # Step 3: Use generated icon and splash
-    dest_icon = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
-    dest_splash = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
-    dest_splash.parent.mkdir(parents=True, exist_ok=True)
+    # Step 3: Download or copy icon and splash
+    icon_url = f"https://apk-service-production.up.railway.app/output/{site_name}-512x512.png"
+    splash_url = f"https://apk-service-production.up.railway.app/output/{site_name}-splash-1280x1920.png"
 
-    shutil.copy(icon_path, dest_icon)
-    shutil.copy(splash_path, dest_splash)
-    print("✅ Copied icon and splash to template")
+    icon_target = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
+    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
+    splash_target.parent.mkdir(parents=True, exist_ok=True)
+
+    # Copy icon and splash from /app/output/ folder
+    shutil.copy(f"/app/output/{site_name}-512x512.png", icon_target)
+    shutil.copy(f"/app/output/{site_name}-splash-1280x1920.png", splash_target)
+
+    print(f"✅ Copied icon to {icon_target}")
+    print(f"✅ Copied splash to {splash_target}")
 
     # Step 4: Update manifest and main activity
     manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
