@@ -1,0 +1,33 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+
+    - name: Grant execute permission to Gradle
+      run: chmod +x apk-template/gradlew
+
+    - name: Build APK
+      working-directory: apk-template
+      run: ./gradlew assembleDebug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-debug.apk
+        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
