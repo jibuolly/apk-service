@@ -2,8 +2,8 @@ name: Build APK
 
 on:
   repository_dispatch:
-    types: [apk_build]
-    
+    types: [build-apk]
+
 jobs:
   build:
     runs-on: ubuntu-latest
