@@ -19,6 +19,9 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
 
+    - name: Clone apk-template
+      run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
+
     - name: Grant execute permission to Gradle
       run: chmod +x apk-template/gradlew
 
