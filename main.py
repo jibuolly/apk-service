@@ -136,6 +136,9 @@ async def handle_form(request: Request):
     }
     payload = {
         "ref": "main"
+        "inputs": {
+            "site_name": site_name
+        }
     }
 
     try:
