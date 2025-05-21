@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import os, re, shutil, subprocess, zipfile
+import os, re, shutil, subprocess, requests, zipfile
 from urllib.parse import unquote_plus
 from pathlib import Path
 from pydantic import BaseModel
+from PIL import Image, ImageDraw, ImageFont
 
 app = FastAPI()
 
@@ -30,6 +31,28 @@ async def handle_form(request: Request):
     print(f"✅ Website: {website_url}")
     print(f"✅ Brand color: {brand_color}")
 
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
+
+    icon_path = output_dir / f"{site_name}-512x512.png"
+    splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
+
+    # === Generate Icon ===
+    icon_img = Image.new("RGB", (512, 512), color=brand_color)
+    draw_icon = ImageDraw.Draw(icon_img)
+    font_icon = ImageFont.load_default()
+    draw_icon.text((180, 240), site_name[:1].upper(), font=font_icon, fill="white")
+    icon_img.save(icon_path)
+    print(f"✅ Icon created at: {icon_path}")
+
+    # === Generate Splash ===
+    splash_img = Image.new("RGB", (1280, 1920), color=brand_color)
+    draw_splash = ImageDraw.Draw(splash_img)
+    font_splash = ImageFont.load_default()
+    draw_splash.text((500, 900), app_label, font=font_splash, fill="white")
+    splash_img.save(splash_path)
+    print(f"✅ Splash created at: {splash_path}")
+
     # Step 1: Setup temp workspace
     working_dir = Path(f"/tmp/{site_name}")
     if working_dir.exists():
@@ -43,23 +66,16 @@ async def handle_form(request: Request):
     app_dir = working_dir / "apk-template"
     os.chdir(app_dir)
 
-    # Step 3: Use local icon and splash images (copied from /app/output)
-    icon_path = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
-    splash_path = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
-    splash_path.parent.mkdir(parents=True, exist_ok=True)
+    # Step 3: Use generated icon and splash
+    dest_icon = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
+    dest_splash = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
+    dest_splash.parent.mkdir(parents=True, exist_ok=True)
 
-    local_icon_path = Path(f"/app/output/{site_name}-512x512.png")
-    local_splash_path = Path(f"/app/output/{site_name}-splash-1280x1920.png")
+    shutil.copy(icon_path, dest_icon)
+    shutil.copy(splash_path, dest_splash)
+    print("✅ Copied icon and splash to template")
 
-    with open(local_icon_path, "rb") as src, open(icon_path, "wb") as dst:
-        dst.write(src.read())
-
-    with open(local_splash_path, "rb") as src, open(splash_path, "wb") as dst:
-        dst.write(src.read())
-
-    print("✅ Copied icon and splash")
-
-    # Step 4: Inject website URL and package name
+    # Step 4: Update manifest and main activity
     manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
     main_activity_path = list(app_dir.glob("**/MainActivity.java"))[0]
 
@@ -91,13 +107,13 @@ async def handle_form(request: Request):
     if not apk_path.exists():
         return JSONResponse(status_code=500, content={"error": "APK not found after build"})
 
-    print("✅ APK ready:", apk_path)
+    # Copy APK to output for download (optional)
+    shutil.copy(apk_path, output_dir / f"{site_name}.apk")
+    print("✅ Final APK saved")
+
+    # ✅ Step 7: [To be implemented] Email using Brevo
 
     return JSONResponse(content={
         "message": "APK built successfully",
         "apk_url": f"/output/{site_name}.apk"
     })
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
