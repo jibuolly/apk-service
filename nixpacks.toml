@@ -2,7 +2,8 @@
 packages = ["openjdk", "python311", "git"]
 
 [env]
-JAVA_HOME = "/nix/store/zxrxfshvmxyzjdk"  # this is a placeholder
+JAVA_HOME = "/nix/store/zv2b9n0xk61k3a1a20i3z5d6p6p8mcck-openjdk-17+35"
+PATH = "${JAVA_HOME}/bin:${PATH}"
 
 [start]
 cmd = "uvicorn main:app --host 0.0.0.0 --port 8080"
