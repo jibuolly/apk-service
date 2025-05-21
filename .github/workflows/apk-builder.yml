@@ -9,32 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v3
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'temurin'
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
 
-      - name: Clone apk-template
-        run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
+    - name: Clone apk-template
+      run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-      - name: Create local.properties file
-        working-directory: apk-template
-        run: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+    - name: Grant execute permission to Gradle
+      run: chmod +x apk-template/gradlew
 
-      - name: Grant execute permission to Gradle
-        run: chmod +x apk-template/gradlew
+    - name: Build APK
+      working-directory: apk-template
+      run: ./gradlew assembleDebug
 
-      - name: Build APK
-        working-directory: apk-template
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug.apk
-          path: apk-template/app/build/outputs/apk/debug/app-debug.apk
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug.apk
+        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
