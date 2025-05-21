@@ -40,9 +40,9 @@ async def handle_form(request: Request):
     print(f"✅ Website: {website_url}")
     print(f"✅ Brand color: {brand_color}")
 
-    output_dir = Path("output")
-    output_dir.mkdir(exist_ok=True)
-
+    output_dir = Path("/app/output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
     icon_path = output_dir / f"{site_name}-512x512.png"
     splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
 
