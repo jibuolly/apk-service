@@ -1,9 +1,12 @@
 name: Build APK
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: 'Site name (e.g., suwasthi)'
+        required: true
+        default: 'demo'
 
 jobs:
   build:
@@ -29,8 +32,11 @@ jobs:
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
+    - name: Rename APK using site_name
+      run: mv apk-template/app/build/outputs/apk/debug/app-debug.apk ${{ github.event.inputs.site_name }}.apk
+
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug.apk
-        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
+        name: ${{ github.event.inputs.site_name }}.apk
+        path: ${{ github.event.inputs.site_name }}.apk
