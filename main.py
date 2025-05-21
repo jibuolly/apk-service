@@ -25,10 +25,17 @@ async def handle_form(request: Request):
         return JSONResponse(status_code=400, content={"error": "Missing email or website_url"})
 
     # Derive site name
-    site_name = re.sub(r'https?://|www\.|[^a-zA-Z0-9]', '', website_url).lower()
+    from urllib.parse import urlparse
+
+    parsed = urlparse(website_url)
+    hostname = parsed.hostname or website_url
+    if hostname.startswith("www."):
+        hostname = hostname[4:]
+    site_name = hostname.split(".")[0].lower()
+
     package_name = f"com.{site_name}.android"
     app_label = site_name.capitalize()
-
+ 
     print(f"✅ App name: {package_name}")
     print(f"✅ Website: {website_url}")
     print(f"✅ Brand color: {brand_color}")
