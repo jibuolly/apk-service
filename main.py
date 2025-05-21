@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import os, re, shutil, subprocess, requests, zipfile
+import os, re, shutil, subprocess, zipfile
 from urllib.parse import unquote_plus
 from pathlib import Path
 from pydantic import BaseModel
@@ -43,32 +43,30 @@ async def handle_form(request: Request):
     app_dir = working_dir / "apk-template"
     os.chdir(app_dir)
 
-    # Step 3: Download icon and splash
-    icon_url = f"https://apk-service-production.up.railway.app/output/{site_name}-512x512.png"
-    splash_url = f"https://apk-service-production.up.railway.app/output/{site_name}-splash-1280x1920.png"
-
+    # Step 3: Use local icon and splash images (copied from /app/output)
     icon_path = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
     splash_path = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
     splash_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(icon_path, "wb") as f:
-        f.write(requests.get(icon_url).content)
+    local_icon_path = Path(f"/app/output/{site_name}-512x512.png")
+    local_splash_path = Path(f"/app/output/{site_name}-splash-1280x1920.png")
 
-    with open(splash_path, "wb") as f:
-        f.write(requests.get(splash_url).content)
+    with open(local_icon_path, "rb") as src, open(icon_path, "wb") as dst:
+        dst.write(src.read())
 
-    print("✅ Downloaded icon and splash")
+    with open(local_splash_path, "rb") as src, open(splash_path, "wb") as dst:
+        dst.write(src.read())
+
+    print("✅ Copied icon and splash")
 
     # Step 4: Inject website URL and package name
     manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
     main_activity_path = list(app_dir.glob("**/MainActivity.java"))[0]
 
-    # Update AndroidManifest
     manifest = manifest_path.read_text()
     manifest = re.sub(r'package="[^"]+"', f'package="{package_name}"', manifest)
     manifest_path.write_text(manifest)
 
-    # Update MainActivity
     main_code = main_activity_path.read_text()
     main_code = re.sub(r'package\s+[\w\.]+;', f'package {package_name};', main_code)
     main_code = re.sub(r'loadUrl\(".*?"\)', f'loadUrl("{website_url}")', main_code)
@@ -95,13 +93,11 @@ async def handle_form(request: Request):
 
     print("✅ APK ready:", apk_path)
 
-    # TODO Step 7: Email the APK using Brevo (coming next)
-
     return JSONResponse(content={
         "message": "APK built successfully",
         "apk_url": f"/output/{site_name}.apk"
     })
 
-    if __name__ == "__main__":
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8080)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080)
