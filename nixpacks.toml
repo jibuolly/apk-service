@@ -1,0 +1,2 @@
+[setup]
+packages = ["openjdk", "python311", "git"]
