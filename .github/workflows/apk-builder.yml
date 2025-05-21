@@ -2,41 +2,38 @@ name: Build APK
 
 on:
   workflow_dispatch:
-    inputs:
-      site_name:
-        description: 'Site name (e.g., suwasthi)'
-        required: true
-        default: 'demo'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Set up JDK
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
 
-    - name: Clone apk-template
-      run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
+      - name: Clone apk-template
+        run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Grant execute permission to Gradle
-      run: chmod +x apk-template/gradlew
+      - name: Create local.properties file
+        working-directory: apk-template
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
-    - name: Build APK
-      working-directory: apk-template
-      run: ./gradlew assembleDebug
+      - name: Grant execute permission to Gradle
+        run: chmod +x apk-template/gradlew
 
-    - name: Rename APK using site_name
-      run: mv apk-template/app/build/outputs/apk/debug/app-debug.apk ${{ github.event.inputs.site_name }}.apk
+      - name: Build APK
+        working-directory: apk-template
+        run: ./gradlew assembleDebug
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ github.event.inputs.site_name }}.apk
-        path: ${{ github.event.inputs.site_name }}.apk
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: apk-template/app/build/outputs/apk/debug/app-debug.apk
