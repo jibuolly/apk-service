@@ -117,9 +117,32 @@ async def handle_form(request: Request):
 
     # Copy APK to output for download (optional)
     shutil.copy(apk_path, output_dir / f"{site_name}.apk")
-    print("✅ Final APK saved")
+    print(f"✅ Final APK saved")
 
-    # ✅ Step 7: [To be implemented] Email using Brevo
+    # Step 7: Trigger GitHub Actions workflow
+    import httpx
+
+    trigger_url = "https://api.github.com/repos/jibuolly/apk-service/actions/workflows/apk-builder.yml/dispatches"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    payload = {
+        "ref": "main"
+    }
+
+    try:
+        r = httpx.post(trigger_url, headers=headers, json=payload)
+        print(f"✅ Triggered GitHub Actions: {r.status_code}")
+    except Exception as e:
+        print(f"❌ Failed to trigger GitHub Actions: {e}")
+
+    # Step 8: [To be implemented] Email using Brevo
+
+    return JSONResponse(content={
+        "message": "APK built successfully",
+        "apk_url": f"/output/{site_name}.apk"
+    })
 
     return JSONResponse(content={
         "message": "APK built successfully",
