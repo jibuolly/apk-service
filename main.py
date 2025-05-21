@@ -135,7 +135,7 @@ async def handle_form(request: Request):
         "Accept": "application/vnd.github.v3+json"
     }
     payload = {
-        "ref": "main"
+        "ref": "main",
         "inputs": {
             "site_name": site_name
         }
