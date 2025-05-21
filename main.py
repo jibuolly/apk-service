@@ -148,12 +148,6 @@ async def handle_form(request: Request):
         print(f"❌ Failed to trigger GitHub Actions: {e}")
 
     # Step 8: [To be implemented] Email using Brevo
-
-    return JSONResponse(content={
-        "message": "APK built successfully",
-        "apk_url": f"/output/{site_name}.apk"
-    })
-
     return JSONResponse(content={
         "message": "APK built successfully",
         "apk_url": f"/output/{site_name}.apk"
