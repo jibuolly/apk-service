@@ -3,3 +3,4 @@ uvicorn
 python-multipart
 Pillow>=9.2.0
 requests
+httpx
