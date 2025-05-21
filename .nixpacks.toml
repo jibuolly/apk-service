@@ -1,8 +1,8 @@
 [setup]
-packages = ["openjdk", "python311", "git"]
+packages = ["openjdk17", "python311", "git", "unzip"]
 
 [env]
-JAVA_HOME = "/nix/store/zv2b9n0xk61k3a1a20i3z5d6p6p8mcck-openjdk-17+35"
+JAVA_HOME = "/nix/store/ijmqf5nr8p4g3r84nxz6x6sqf5jynm1c-openjdk-17+35"
 PATH = "${JAVA_HOME}/bin:${PATH}"
 
 [start]
