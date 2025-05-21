@@ -7,6 +7,7 @@ from urllib.parse import unquote_plus
 from pathlib import Path
 from pydantic import BaseModel
 from PIL import Image, ImageDraw, ImageFont
+import httpx
 
 app = FastAPI()
 
@@ -130,25 +131,28 @@ async def handle_form(request: Request):
     # Copy APK to output for download (optional)
     shutil.copy(apk_path, output_dir / f"{site_name}.apk")
     print(f"✅ Final APK saved")
-
-    # Step 7: Trigger GitHub Actions workflow
-    import httpx
-
-    trigger_url = "https://api.github.com/repos/jibuolly/apk-service/actions/workflows/apk-builder.yml/dispatches"
+    
+    # Step 7: Trigger GitHub Actions using repository_dispatch
+    dispatch_url = "https://api.github.com/repos/jibuolly/apk-service/dispatches"
     headers = {
         "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}",
         "Accept": "application/vnd.github.v3+json"
     }
-    payload = {
-        "ref": "main",
-        "inputs": {
-            "site_name": site_name
+    data = {
+        "event_type": "apk_build",  # This must match your .yml event type
+        "client_payload": {
+            "site_name": site_name,
+            "email": email,
+            "website_url": website_url
         }
     }
 
     try:
-        r = httpx.post(trigger_url, headers=headers, json=payload)
-        print(f"✅ Triggered GitHub Actions: {r.status_code}")
+        response = httpx.post(dispatch_url, headers=headers, json=data)
+        print(f"✅ GitHub repository_dispatch sent: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Failed to trigger GitHub Actions: {e}")
+
     except Exception as e:
         print(f"❌ Failed to trigger GitHub Actions: {e}")
 
