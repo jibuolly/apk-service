@@ -27,12 +27,11 @@ jobs:
     - name: Grant execute permission to Gradle
       run: chmod +x apk-template/gradlew
 
-    - name: Update package name and URL
-      working-directory: apk-template
+    - name: Update package name and website URL
       run: |
-        sed -i "s/package=\"[^\"]*\"/package=\"com.${SITE_NAME}.android\"/" app/src/main/AndroidManifest.xml
-        sed -i "s/package .*;/package com.${SITE_NAME}.android;/" app/src/main/java/com/example/webviewapp/MainActivity.java
-        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${SITE_NAME}.in\")|" app/src/main/java/com/example/webviewapp/MainActivity.java
+        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" app/src/main/AndroidManifest.xml
+        sed -i "s/package .*;/package com.${{ github.event.client_payload.site_name }}.android;/" app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ github.event.client_payload.site_name }}.in\")|" app/src/main/java/com/wixify/android/MainActivity.java
 
     - name: Download icon and splash
       working-directory: apk-template/app/src/main/res
