@@ -127,24 +127,28 @@ async def handle_form(request: Request):
     print("ℹ️ Skipping local APK check, triggering GitHub Actions instead.")
     
     # Step 7: Trigger GitHub Actions workflow
+    import httpx
+
     trigger_url = "https://api.github.com/repos/jibuolly/apk-service/dispatches"
     headers = {
         "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}",
-        "Accept": "application/vnd.github+json"
+        "Accept": "application/vnd.github.v3+json"
     }
     payload = {
-        "event_type": "build-apk"
+        "event_type": "build-apk",
+        "client_payload": {
+            "site_name": site_name
+        }
     }
 
-    # 🐛 DEBUG: Print payload before calling GitHub API
     print("⚠️ Debug Triggering GitHub Workflow:")
-    print("POST", trigger_url)
-    print("Headers:", headers)
-    print("Payload:", payload)
-    
+    print(f"POST {trigger_url}")
+    print(f"Payload: {payload}")
+
     try:
         r = httpx.post(trigger_url, headers=headers, json=payload)
         print(f"✅ Triggered GitHub Actions: {r.status_code}")
+        print(f"Response: {r.text}")
     except Exception as e:
         print(f"❌ Failed to trigger GitHub Actions: {e}")
 
