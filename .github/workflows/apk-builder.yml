@@ -27,9 +27,17 @@ jobs:
     - name: Grant execute permission to Gradle
       run: chmod +x apk-template/gradlew
 
-    - name: Update package name and website URL
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: List files in app/src/main
+      run: ls -la app/src/main
+
+    - name: Update package name in AndroidManifest.xml
+      run: sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" app/src/main/res/AndroidManifest.xml
+
+    - name: Update package name and website URL in MainActivity.java
       run: |
-        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ github.event.client_payload.site_name }}.android;/" app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ github.event.client_payload.site_name }}.in\")|" app/src/main/java/com/wixify/android/MainActivity.java
 
