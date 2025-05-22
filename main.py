@@ -4,6 +4,7 @@ import os, re, shutil, subprocess
 from urllib.parse import unquote_plus, urlparse
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+import httpx
 
 app = FastAPI()
 
@@ -12,6 +13,7 @@ async def handle_form(request: Request):
     body = await request.body()
     print("✅ Raw body received:", body.decode("utf-8"))
 
+    # Extract values
     data = dict(re.findall(r'([\w\[\]_]+)=([^&]+)', body.decode("utf-8")))
     email = unquote_plus(data.get("email", ""))
     website_url = unquote_plus(data.get("website_url", ""))
@@ -34,12 +36,12 @@ async def handle_form(request: Request):
     print(f"✅ Brand color: {brand_color}")
 
     output_dir = Path("/app/output")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(exist_ok=True)
 
-    icon_path = output_dir / f"{site_name}-512x512.png"
-    splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
+    icon_path = Path("/app/output") / f"{site_name}-512x512.png"
+    splash_path = Path("/app/output") / f"{site_name}-splash-1280x1920.png"
 
-    # === Generate Icon ===
+    # Generate Icon
     icon_img = Image.new("RGB", (512, 512), color=brand_color)
     draw_icon = ImageDraw.Draw(icon_img)
     font_icon = ImageFont.load_default()
@@ -47,7 +49,7 @@ async def handle_form(request: Request):
     icon_img.save(icon_path)
     print(f"✅ Icon created at: {icon_path}")
 
-    # === Generate Splash ===
+    # Generate Splash
     splash_img = Image.new("RGB", (1280, 1920), color=brand_color)
     draw_splash = ImageDraw.Draw(splash_img)
     font_splash = ImageFont.load_default()
@@ -61,51 +63,65 @@ async def handle_form(request: Request):
         shutil.rmtree(working_dir)
     working_dir.mkdir(parents=True)
 
+    # Step 2: Clone apk-template
     os.chdir(working_dir)
     subprocess.run(["git", "clone", "--depth", "1", "https://github.com/jibuolly/apk-template.git"], check=True)
+
     app_dir = working_dir / "apk-template"
     os.chdir(app_dir)
 
-    # Step 2: Copy assets to template
-    icon_target = app_dir / "app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
-    splash_target = app_dir / "app/src/main/res/drawable/splash.png"
+    # Step 3: Copy icon and splash
+    icon_target = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
+    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
     splash_target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(icon_path, icon_target)
     shutil.copy(splash_path, splash_target)
+
     print(f"✅ Copied icon to {icon_target}")
     print(f"✅ Copied splash to {splash_target}")
 
-    # Step 3: Modify template source code
-    manifest_path = app_dir / "app/src/main/AndroidManifest.xml"
+    # Step 4: Update manifest and main activity
+    manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
     main_activity_path = list(app_dir.glob("**/MainActivity.java"))[0]
+
     manifest = manifest_path.read_text()
     manifest = re.sub(r'package="[^"]+"', f'package="{package_name}"', manifest)
     manifest_path.write_text(manifest)
+
     main_code = main_activity_path.read_text()
     main_code = re.sub(r'package\s+[\w\.]+;', f'package {package_name};', main_code)
     main_code = re.sub(r'loadUrl\(".*?"\)', f'loadUrl("{website_url}")', main_code)
     main_activity_path.write_text(main_code)
+
     print("✅ Updated package name and URL")
 
-    # Step 4: Build the APK
-    subprocess.run(["chmod", "+x", "./gradlew"], check=True)
-    result = subprocess.run(["./gradlew", "assembleDebug"], capture_output=True, text=True)
+    # Step 5: Skip local APK build (GitHub will build it)
+    print("ℹ️ Skipping local APK check, triggering GitHub Actions instead.")
 
-    if result.returncode != 0:
-        print("❌ Build failed:")
-        print(result.stdout)
-        print(result.stderr)
-        return JSONResponse(status_code=500, content={"error": "APK build failed"})
+    # Step 6: Trigger GitHub Actions
+    trigger_url = "https://api.github.com/repos/jibuolly/apk-service/dispatches"
+    headers = {
+        "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}",
+        "Accept": "application/vnd.github+json"
+    }
+    payload = {
+        "event_type": "build-apk",
+        "client_payload": {
+            "site_name": site_name
+        }
+    }
 
-    print("✅ APK build successful")
+    print("⚠️ Debug Triggering GitHub Workflow:")
+    print(f"POST {trigger_url}")
+    print(f"Headers: {headers}")
 
-    # Step 5: Locate and copy APK
-    apk_path = app_dir / "app/build/outputs/apk/debug/app-debug.apk"
-    if apk_path.exists():
-        shutil.copy(apk_path, output_dir / f"{site_name}.apk")
-        print("✅ Final APK saved")
+    try:
+        r = httpx.post(trigger_url, headers=headers, json=payload)
+        print(f"✅ Triggered GitHub Actions: {r.status_code}")
+    except Exception as e:
+        print(f"❌ Failed to trigger GitHub Actions: {e}")
 
     return JSONResponse(content={
-        "message": "APK built successfully",
+        "message": "APK build triggered",
         "apk_url": f"/output/{site_name}.apk"
     })
