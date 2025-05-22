@@ -1,101 +1,86 @@
-
+import os
+import re
+import shutil
+import subprocess
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import os, re, shutil, subprocess
-from urllib.parse import unquote_plus, urlparse
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from fastapi.middleware.cors import CORSMiddleware
 import httpx
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/submit")
 async def handle_form(request: Request):
     body = await request.body()
     print("✅ Raw body received:", body.decode("utf-8"))
 
-    data = dict(re.findall(r'([\w\[\]_]+)=([^&]+)', body.decode("utf-8")))
-    email = unquote_plus(data.get("email", ""))
-    website_url = unquote_plus(data.get("website_url", ""))
-    brand_color = unquote_plus(data.get("brand_color", "#000000"))
+    data = await request.form()
+    website_url = data.get("website_url", "").strip()
+    site_name = re.sub(r"^https?://", "", website_url).split(".")[0]
+    brand_color = data.get("brand_color", "#000000")
+    email = data.get("email", "").strip()
 
-    if not email or not website_url:
-        return JSONResponse(status_code=400, content={"error": "Missing email or website_url"})
-
-    parsed = urlparse(website_url)
-    hostname = parsed.hostname or website_url
-    if hostname.startswith("www."):
-        hostname = hostname[4:]
-    site_name = hostname.split(".")[0].lower()
-    full_domain = hostname
-
-    package_name = f"com.{site_name}.android"
-    app_label = site_name.capitalize()
-
-    print(f"✅ App name: {package_name}")
+    print(f"✅ App name: com.{site_name}.android")
     print(f"✅ Website: {website_url}")
     print(f"✅ Brand color: {brand_color}")
 
     output_dir = Path("/app/output")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(exist_ok=True)
 
     icon_path = output_dir / f"{site_name}-512x512.png"
     splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
-
-    # Icon
-    icon_img = Image.new("RGB", (512, 512), color=brand_color)
-    draw_icon = ImageDraw.Draw(icon_img)
-    font_icon = ImageFont.load_default()
-    draw_icon.text((200, 220), site_name[:1].upper(), font=font_icon, fill="white")
-    icon_img.save(icon_path)
     print(f"✅ Icon created at: {icon_path}")
-
-    # Splash
-    splash_img = Image.new("RGB", (1280, 1920), color=brand_color)
-    draw_splash = ImageDraw.Draw(splash_img)
-    font_splash = ImageFont.load_default()
-    draw_splash.text((540, 900), app_label, font=font_splash, fill="white")
-    splash_img.save(splash_path)
     print(f"✅ Splash created at: {splash_path}")
 
-    # Workspace
-    working_dir = Path(f"/tmp/{site_name}")
-    if working_dir.exists():
-        shutil.rmtree(working_dir)
-    working_dir.mkdir(parents=True)
+    tmp_dir = Path("/tmp") / site_name
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    os.chdir(working_dir)
+    os.chdir(tmp_dir)
     subprocess.run(["git", "clone", "--depth", "1", "https://github.com/jibuolly/apk-template.git"], check=True)
-    app_dir = working_dir / "apk-template"
-    os.chdir(app_dir)
 
-    # Place icon and splash
-    # Ensure the mipmap-xxxhdpi and drawable folders exist
-    (app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi").mkdir(parents=True, exist_ok=True)
-    (app_dir / "app" / "src" / "main" / "res" / "drawable").mkdir(parents=True, exist_ok=True)
+    app_dir = tmp_dir / "apk-template"
+    icon_target_dirs = [
+        "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
+        "mipmap-xxhdpi", "mipmap-xxxhdpi"
+    ]
+    for d in icon_target_dirs:
+        shutil.copy(icon_path, app_dir / "app" / "src" / "main" / "res" / d / "ic_launcher.png")
 
-    # Copy icon and splash
-    # Ensure output folders exist
-    (app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi").mkdir(parents=True, exist_ok=True)
-    (app_dir / "app" / "src" / "main" / "res" / "drawable").mkdir(parents=True, exist_ok=True)
+    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable"
+    splash_target.mkdir(parents=True, exist_ok=True)
+    shutil.copy(splash_path, splash_target / "splash.png")
 
-    # Copy icon and splash
-    icon_target = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
-    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
+    manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
+    main_activity_path = app_dir / "app" / "src" / "main" / "java" / "com" / "wixify" / "android" / "MainActivity.java"
+    strings_xml_path = app_dir / "app" / "src" / "main" / "res" / "values" / "strings.xml"
 
-    shutil.copy(str(icon_path), icon_target)
-    shutil.copy(str(splash_path), splash_target)
+    manifest = manifest_path.read_text()
+    manifest = re.sub(r'package="[^"]+"', f'package="com.{site_name}.android"', manifest)
+    manifest_path.write_text(manifest)
 
-    print(f"✅ Copied icon to {icon_target}")
-    print(f"✅ Copied splash to {splash_target}")
+    main_code = main_activity_path.read_text()
+    main_code = re.sub(r'package\s+[\w\.]+;', f'package com.{site_name}.android;', main_code)
+    main_code = re.sub(r'loadUrl\(".*?"\)', f'loadUrl("{website_url}")', main_code)
+    main_activity_path.write_text(main_code)
 
-    print(f"✅ Copied icon to {app_dir}/res/mipmap-xxxhdpi")
-    print(f"✅ Copied splash to {app_dir}/res/drawable")
+    strings = strings_xml_path.read_text()
+    strings = re.sub(r'<string name="app_name">.*?</string>', f'<string name="app_name">{site_name.title()}</string>', strings)
+    strings_xml_path.write_text(strings)
 
-    print("ℹ️ Skipping local APK check, triggering GitHub Actions instead.")
+    print("✅ Updated package name, URL, and app label")
 
-    # Trigger GitHub
-    trigger_url = "https://api.github.com/repos/jibuolly/apk-service/dispatches"
+    print("\n⚠️ Debug Triggering GitHub Workflow:")
+    print("POST https://api.github.com/repos/jibuolly/apk-service/dispatches")
     headers = {
         "Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}",
         "Accept": "application/vnd.github+json"
@@ -104,21 +89,14 @@ async def handle_form(request: Request):
         "event_type": "build-apk",
         "client_payload": {
             "site_name": site_name,
-            "app_label": app_label,
             "website_url": website_url
         }
     }
 
     try:
-        print(f"⚠️ Debug Triggering GitHub Workflow:")
-        print("POST", trigger_url)
-        print("Headers:", headers)
-        r = httpx.post(trigger_url, headers=headers, json=payload)
+        r = httpx.post("https://api.github.com/repos/jibuolly/apk-service/dispatches", headers=headers, json=payload)
         print(f"✅ Triggered GitHub Actions: {r.status_code}")
     except Exception as e:
         print(f"❌ Failed to trigger GitHub Actions: {e}")
 
-    return JSONResponse(content={
-        "message": "Triggered GitHub Actions for APK build",
-        "apk_expected": f"{site_name}.apk"
-    })
+    return JSONResponse(content={"status": "success"})
