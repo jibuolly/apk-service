@@ -123,14 +123,8 @@ async def handle_form(request: Request):
 
     print("✅ Updated package name and URL")
 
-    # Step 6: Locate the APK
-    apk_path = app_dir / "app" / "build" / "outputs" / "apk" / "debug" / "app-debug.apk"
-    if not apk_path.exists():
-        return JSONResponse(status_code=500, content={"error": "APK not found after build"})
-
-    # Copy APK to output for download (optional)
-    shutil.copy(apk_path, output_dir / f"{site_name}.apk")
-    print(f"✅ Final APK saved")
+    # Step 6: (Skip APK build check - handled by GitHub Actions)
+    print("ℹ️ Skipping local APK check, triggering GitHub Actions instead.")
     
     # Step 7: Trigger GitHub Actions workflow
     trigger_url = "https://api.github.com/repos/jibuolly/apk-service/dispatches"
