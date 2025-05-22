@@ -24,27 +24,11 @@ jobs:
     - name: Clone apk-template
       run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Grant execute permission to Gradle
-      run: chmod +x apk-template/gradlew
-
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-
-    - name: List files in app/src/main
-      run: ls -la app/src/main
-
     - name: Update package name and website URL
       run: |
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ github.event.client_payload.site_name }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ github.event.client_payload.site_name }}.in\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-    
-    - name: Download icon and splash
-      working-directory: apk-template/app/src/main/res
-      run: |
-        mkdir -p mipmap-xxxhdpi drawable
-        curl -o mipmap-xxxhdpi/ic_launcher.png https://apk-service-production.up.railway.app/output/${SITE_NAME}-512x512.png
-        curl -o drawable/splash.png https://apk-service-production.up.railway.app/output/${SITE_NAME}-splash-1280x1920.png
 
     - name: Build APK
       working-directory: apk-template
@@ -53,5 +37,5 @@ jobs:
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-${{ env.SITE_NAME }}.apk
+        name: app-debug.apk
         path: apk-template/app/build/outputs/apk/debug/app-debug.apk
