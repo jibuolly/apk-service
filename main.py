@@ -70,8 +70,14 @@ async def handle_form(request: Request):
     os.chdir(app_dir)
 
     # Place icon and splash
+    # Ensure the mipmap-xxxhdpi and drawable folders exist
+    (app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi").mkdir(parents=True, exist_ok=True)
+    (app_dir / "app" / "src" / "main" / "res" / "drawable").mkdir(parents=True, exist_ok=True)
+
+    # Copy icon and splash
     shutil.copy(str(icon_path), app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png")
     shutil.copy(str(splash_path), app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png")
+
     print(f"✅ Copied icon to {app_dir}/res/mipmap-xxxhdpi")
     print(f"✅ Copied splash to {app_dir}/res/drawable")
 
