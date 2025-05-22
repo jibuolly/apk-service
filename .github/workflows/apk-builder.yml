@@ -8,6 +8,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      SITE_NAME: ${{ github.event.client_payload.site_name }}
+
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
@@ -24,6 +27,20 @@ jobs:
     - name: Grant execute permission to Gradle
       run: chmod +x apk-template/gradlew
 
+    - name: Update package name and URL
+      working-directory: apk-template
+      run: |
+        sed -i "s/package=\"[^\"]*\"/package=\"com.${SITE_NAME}.android\"/" app/src/main/AndroidManifest.xml
+        sed -i "s/package .*;/package com.${SITE_NAME}.android;/" app/src/main/java/com/example/webviewapp/MainActivity.java
+        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${SITE_NAME}.in\")|" app/src/main/java/com/example/webviewapp/MainActivity.java
+
+    - name: Download icon and splash
+      working-directory: apk-template/app/src/main/res
+      run: |
+        mkdir -p mipmap-xxxhdpi drawable
+        curl -o mipmap-xxxhdpi/ic_launcher.png https://apk-service-production.up.railway.app/output/${SITE_NAME}-512x512.png
+        curl -o drawable/splash.png https://apk-service-production.up.railway.app/output/${SITE_NAME}-splash-1280x1920.png
+
     - name: Build APK
       working-directory: apk-template
       run: ./gradlew assembleDebug
@@ -31,5 +48,5 @@ jobs:
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug.apk
+        name: app-${{ env.SITE_NAME }}.apk
         path: apk-template/app/build/outputs/apk/debug/app-debug.apk
