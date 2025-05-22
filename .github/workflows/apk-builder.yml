@@ -24,26 +24,26 @@ jobs:
     - name: Clone apk-template
       run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Set Executable Permission for Gradle
-      run: chmod +x apk-template/gradlew
-
     - name: Update package name and website URL
       run: |
-        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
-        sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ env.SITE_NAME }}.in\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
+        sed -i "s/package .*;/package com.${{ github.event.client_payload.site_name }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ github.event.client_payload.site_name }}.in\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
 
-    - name: Build Release APK
+    - name: Grant execute permission to Gradle
+      run: chmod +x apk-template/gradlew
+
+    - name: Build Debug APK
       working-directory: apk-template
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleDebug
 
     - name: Rename APK
       run: |
         APP_NAME=$(echo "${{ env.SITE_NAME }}" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
-        mv apk-template/app/build/outputs/apk/release/app-release.apk "${APP_NAME}.apk"
+        mv apk-template/app/build/outputs/apk/debug/app-debug.apk "${APP_NAME}.apk"
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.SITE_NAME }}-release.apk
+        name: app
         path: "*.apk"
