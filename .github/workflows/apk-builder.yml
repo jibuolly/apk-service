@@ -10,7 +10,7 @@ jobs:
 
     env:
       SITE_NAME: ${{ github.event.client_payload.site_name }}
-      SITE_URL: ${{ github.event.client_payload.website_url }}
+      WEBSITE_URL: ${{ github.event.client_payload.website_url }}
 
     steps:
     - name: Checkout Repository
@@ -25,31 +25,27 @@ jobs:
     - name: Clone apk-template
       run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Verify project structure
+    - name: Update package name, website URL, and app label
       run: |
-        ls -la apk-template/app/src/main/
-        ls -la apk-template/app/src/main/java/com/wixify/android/
+        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
+        sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"${{ env.WEBSITE_URL }}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.SITE_NAME }}</string>|" apk-template/app/src/main/res/values/strings.xml
 
-    - name: Replace package name and WebView URL
-      run: |
-        sed -i "s/package=\"[^\"]*\"/package=\"com.${SITE_NAME}.android\"/" apk-template/app/src/main/AndroidManifest.xml
-        sed -i "s/package .*;/package com.${SITE_NAME}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${SITE_URL}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-
-    - name: Make gradlew executable
+    - name: Set permissions for Gradle
       run: chmod +x apk-template/gradlew
 
     - name: Build APK
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
-    - name: Rename APK to App Name
+    - name: Rename APK
       run: |
-        APP_LABEL=$(echo "${SITE_NAME}" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')
-        mv apk-template/app/build/outputs/apk/debug/app-debug.apk "${APP_LABEL}.apk"
+        APP_NAME=$(echo "${{ env.SITE_NAME }}" | awk '{print tolower($0)}')
+        mv apk-template/app/build/outputs/apk/debug/app-debug.apk $APP_NAME.apk
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Single-APK
-        path: ./*.apk
+        name: ${{ env.SITE_NAME }}.apk
+        path: ${{ env.SITE_NAME }}.apk
