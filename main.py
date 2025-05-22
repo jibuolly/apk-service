@@ -142,6 +142,12 @@ async def handle_form(request: Request):
         "event_type": "build-apk"
     }
 
+    # 🐛 DEBUG: Print payload before calling GitHub API
+    print("⚠️ Debug Triggering GitHub Workflow:")
+    print("POST", trigger_url)
+    print("Headers:", headers)
+    print("Payload:", payload)
+    
     try:
         r = httpx.post(trigger_url, headers=headers, json=payload)
         print(f"✅ Triggered GitHub Actions: {r.status_code}")
