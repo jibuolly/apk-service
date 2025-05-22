@@ -75,8 +75,19 @@ async def handle_form(request: Request):
     (app_dir / "app" / "src" / "main" / "res" / "drawable").mkdir(parents=True, exist_ok=True)
 
     # Copy icon and splash
-    shutil.copy(str(icon_path), app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png")
-    shutil.copy(str(splash_path), app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png")
+    # Ensure output folders exist
+    (app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi").mkdir(parents=True, exist_ok=True)
+    (app_dir / "app" / "src" / "main" / "res" / "drawable").mkdir(parents=True, exist_ok=True)
+
+    # Copy icon and splash
+    icon_target = app_dir / "app" / "src" / "main" / "res" / "mipmap-xxxhdpi" / "ic_launcher.png"
+    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable" / "splash.png"
+
+    shutil.copy(str(icon_path), icon_target)
+    shutil.copy(str(splash_path), splash_target)
+
+    print(f"✅ Copied icon to {icon_target}")
+    print(f"✅ Copied splash to {splash_target}")
 
     print(f"✅ Copied icon to {app_dir}/res/mipmap-xxxhdpi")
     print(f"✅ Copied splash to {app_dir}/res/drawable")
