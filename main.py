@@ -35,8 +35,8 @@ async def handle_form(request: Request):
     output_dir = Path("output")
     output_dir.mkdir(exist_ok=True)
 
-    icon_path = output_dir / f"{site_name}-512x512.png"
-    splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
+    icon_path = Path("/app/output") / f"{site_name}-512x512.png"
+    splash_path = Path("/app/output") / f"{site_name}-splash-1280x1920.png"
 
     # Icon
     icon_img = Image.new("RGB", (512, 512), color=brand_color)
