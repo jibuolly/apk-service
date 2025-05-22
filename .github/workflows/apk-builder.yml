@@ -33,14 +33,12 @@ jobs:
     - name: List files in app/src/main
       run: ls -la app/src/main
 
-    - name: Update package name in AndroidManifest.xml
-      run: sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" app/src/main/res/AndroidManifest.xml
-
-    - name: Update package name and website URL in MainActivity.java
+    - name: Update package name and website URL
       run: |
-        sed -i "s/package .*;/package com.${{ github.event.client_payload.site_name }}.android;/" app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ github.event.client_payload.site_name }}.in\")|" app/src/main/java/com/wixify/android/MainActivity.java
-
+        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ github.event.client_payload.site_name }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
+        sed -i "s/package .*;/package com.${{ github.event.client_payload.site_name }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ github.event.client_payload.site_name }}.in\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+    
     - name: Download icon and splash
       working-directory: apk-template/app/src/main/res
       run: |
