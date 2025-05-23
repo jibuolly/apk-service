@@ -1,65 +1,59 @@
 from PIL import Image, ImageDraw, ImageFont
+import sys
 import os
 
+def get_contrast_color(hex_color):
+    """Return black or white depending on background brightness"""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return "#000000" if brightness > 186 else "#FFFFFF"
+
 def generate_icon(sitename, color_hex):
-    size = (512, 512)
-    image = Image.new("RGB", size, color_hex)
+    image = Image.new("RGB", (512, 512), color_hex)
     draw = ImageDraw.Draw(image)
 
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    font_size = 220
+    font = ImageFont.truetype(font_path, font_size)
+
     text = sitename[0].upper()
-    font_size = 300
-
-    try:
-        font = ImageFont.truetype("arial.ttf", font_size)
-    except:
-        font = ImageFont.load_default()
-
-    # ✅ Center the text using textbbox
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-    position = ((size[0] - text_width) // 2, (size[1] - text_height) // 2)
-
-    draw.text(position, text, font=font, fill="white")
+    text_color = get_contrast_color(color_hex)
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    text_position = ((512 - text_width) // 2, (512 - text_height) // 2)
+    draw.text(text_position, text, fill=text_color, font=font)
 
     return image
 
 def generate_splash(sitename, color_hex):
-    size = (1280, 1920)
-    image = Image.new("RGB", size, color_hex)
+    image = Image.new("RGB", (1280, 1920), color_hex)
     draw = ImageDraw.Draw(image)
 
-    text = sitename.title()
-    font_size = 120
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    font_size = 160
+    font = ImageFont.truetype(font_path, font_size)
 
-    try:
-        font = ImageFont.truetype("arial.ttf", font_size)
-    except:
-        font = ImageFont.load_default()
-
-    bbox = draw.textbbox((0, 0), text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-    position = ((size[0] - text_width) // 2, (size[1] - text_height) // 2)
-
-    draw.text(position, text, font=font, fill="white")
+    text = sitename.capitalize()
+    text_color = get_contrast_color(color_hex)
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    text_position = ((1280 - text_width) // 2, (1920 - text_height) // 2)
+    draw.text(text_position, text, fill=text_color, font=font)
 
     return image
 
 if __name__ == "__main__":
-    import sys
-    sitename = sys.argv[1] if len(sys.argv) > 1 else "demo"
-    color = sys.argv[2] if len(sys.argv) > 2 else "#000000"
+    sitename = sys.argv[1]
+    color = sys.argv[2]
 
-    output_dir = "output"
-    os.makedirs(output_dir, exist_ok=True)
-
+    os.makedirs("output", exist_ok=True)
     icon = generate_icon(sitename, color)
-    icon_path = os.path.join(output_dir, f"{sitename}-512x512.png")
-    icon.save(icon_path)
-    print(f"✅ Icon saved to {icon_path}")
+    icon.save(f"output/{sitename}-512x512.png")
 
     splash = generate_splash(sitename, color)
-    splash_path = os.path.join(output_dir, f"{sitename}-splash-1280x1920.png")
-    splash.save(splash_path)
-    print(f"✅ Splash saved to {splash_path}")
+    splash.save(f"output/{sitename}-splash-1280x1920.png")
+
+    print(f"✅ Icon and splash generated for {sitename} with color {color}")
