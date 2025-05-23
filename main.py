@@ -42,29 +42,8 @@ async def handle_form(request: Request):
 
     icon_path = output_dir / f"{site_name}-512x512.png"
     splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
-
     print(f"✅ Icon created at: {icon_path}")
     print(f"✅ Splash created at: {splash_path}")
-
-    # Copy icon to all mipmap folders
-    icon_target_dirs = [
-        "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
-        "mipmap-xxhdpi", "mipmap-xxxhdpi"
-    ]
-
-    app_dir = tmp_dir / "apk-template"
-    
-    for d in icon_target_dirs:
-        target_dir = app_dir / "app" / "src" / "main" / "res" / d
-        target_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy(icon_path, target_dir / "ic_launcher.png")
-        print(f"✅ Copied icon to {target_dir / 'ic_launcher.png'}")
-
-    # Copy splash to drawable folder
-    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable"
-    splash_target.mkdir(parents=True, exist_ok=True)
-    shutil.copy(splash_path, splash_target / "splash.png")
-    print(f"✅ Copied splash to {splash_target / 'splash.png'}")
 
     tmp_dir = Path("/tmp") / site_name
     if tmp_dir.exists():
@@ -74,16 +53,22 @@ async def handle_form(request: Request):
     os.chdir(tmp_dir)
     subprocess.run(["git", "clone", "--depth", "1", "https://github.com/jibuolly/apk-template.git"], check=True)
 
+    app_dir = tmp_dir / "apk-template"
+
     icon_target_dirs = [
         "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
         "mipmap-xxhdpi", "mipmap-xxxhdpi"
     ]
     for d in icon_target_dirs:
-        shutil.copy(icon_path, app_dir / "app" / "src" / "main" / "res" / d / "ic_launcher.png")
+        target_dir = app_dir / "app" / "src" / "main" / "res" / d
+        target_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(icon_path, target_dir / "ic_launcher.png")
+        print(f"✅ Copied icon to {target_dir / 'ic_launcher.png'}")
 
     splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable"
     splash_target.mkdir(parents=True, exist_ok=True)
     shutil.copy(splash_path, splash_target / "splash.png")
+    print(f"✅ Copied splash to {splash_target / 'splash.png'}")
 
     manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
     main_activity_path = app_dir / "app" / "src" / "main" / "java" / "com" / "wixify" / "android" / "MainActivity.java"
