@@ -1,14 +1,8 @@
 name: Build APK
 
 on:
-  workflow_dispatch:
-    inputs:
-      site_name:
-        description: "Domain name (e.g., delshiz)"
-        required: true
-      website_url:
-        description: "Full website URL (e.g., https://delshiz.com)"
-        required: true
+  repository_dispatch:
+    types: [build-apk]
 
 jobs:
   build:
@@ -16,19 +10,14 @@ jobs:
 
     env:
       SITE_NAME: ${{ github.event.client_payload.site_name }}
+      WEBSITE_URL: ${{ github.event.client_payload.website_url }}
       BRAND_COLOR: ${{ github.event.client_payload.brand_color }}
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Set up JDK
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
-
-    - name: Set up Python
+    - name: Set up Python for image generation
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
@@ -40,22 +29,28 @@ jobs:
       run: |
         python generate_images.py "${{ env.SITE_NAME }}" "${{ env.BRAND_COLOR }}"
 
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+
     - name: Clone apk-template
       run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Update package name, URL, and app label
+    - name: Update package name and website URL
       run: |
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"https://${{ env.SITE_NAME }}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"${{ env.WEBSITE_URL }}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.SITE_NAME }}</string>|" apk-template/app/src/main/res/values/strings.xml
 
-    - name: Copy generated images
+    - name: Replace icon and splash
       run: |
         for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-          cp output/${{ env.SITE_NAME }}-512x512.png apk-template/app/src/main/res/mipmap-$d/ic_launcher.png
+          cp "output/${{ env.SITE_NAME }}-512x512.png" "apk-template/app/src/main/res/mipmap-$d/ic_launcher.png"
         done
-        cp output/${{ env.SITE_NAME }}-splash-1280x1920.png apk-template/app/src/main/res/drawable/splash.png
+        cp "output/${{ env.SITE_NAME }}-splash-1280x1920.png" "apk-template/app/src/main/res/drawable/splash.png"
 
     - name: Build APK
       working-directory: apk-template
