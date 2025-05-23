@@ -14,12 +14,17 @@ def generate_icon(sitename, color_hex):
     font_size = 280
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
     text = sitename[0].upper()
-    text_width, text_height = draw.textsize(text, font=font)
+
+    # Use textbbox for compatibility with newer Pillow
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
-    y = (size[1] - text_height) // 2 - 20
+    y = (size[1] - text_height) // 2
 
     draw.text((x, y), text, fill=text_color, font=font)
     return image
+
 
 def generate_splash(sitename, color_hex):
     size = (1280, 1920)
