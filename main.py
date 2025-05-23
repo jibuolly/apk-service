@@ -45,6 +45,12 @@ async def handle_form(request: Request):
     print(f"✅ Icon created at: {icon_path}")
     print(f"✅ Splash created at: {splash_path}")
 
+    if not icon_path.exists():
+        raise FileNotFoundError(f"❌ Icon not found at {icon_path}")
+    if not splash_path.exists():
+        raise FileNotFoundError(f"❌ Splash not found at {splash_path}")
+
+
     tmp_dir = Path("/tmp") / site_name
     if tmp_dir.exists():
         shutil.rmtree(tmp_dir)
