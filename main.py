@@ -24,7 +24,12 @@ async def handle_form(request: Request):
 
     data = await request.form()
     website_url = data.get("website_url", "").strip()
+    if not website_url.startswith("http://") and not website_url.startswith("https://"):
+    website_url = f"https://{website_url}"
+
     site_name = re.sub(r"^https?://", "", website_url).split(".")[0]
+    app_label = site_name.capitalize()
+
     brand_color = data.get("brand_color", "#000000")
     email = data.get("email", "").strip()
 
@@ -37,8 +42,26 @@ async def handle_form(request: Request):
 
     icon_path = output_dir / f"{site_name}-512x512.png"
     splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
+
     print(f"✅ Icon created at: {icon_path}")
     print(f"✅ Splash created at: {splash_path}")
+
+    # Copy icon to all mipmap folders
+    icon_target_dirs = [
+        "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
+        "mipmap-xxhdpi", "mipmap-xxxhdpi"
+    ]
+    for d in icon_target_dirs:
+        target_dir = app_dir / "app" / "src" / "main" / "res" / d
+        target_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy(icon_path, target_dir / "ic_launcher.png")
+        print(f"✅ Copied icon to {target_dir / 'ic_launcher.png'}")
+
+    # Copy splash to drawable folder
+    splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable"
+    splash_target.mkdir(parents=True, exist_ok=True)
+    shutil.copy(splash_path, splash_target / "splash.png")
+    print(f"✅ Copied splash to {splash_target / 'splash.png'}")
 
     tmp_dir = Path("/tmp") / site_name
     if tmp_dir.exists():
