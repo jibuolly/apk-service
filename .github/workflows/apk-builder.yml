@@ -1,56 +1,69 @@
 name: Build APK
 
 on:
-  repository_dispatch:
-    types: [build-apk]
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: "Domain name (e.g., delshiz)"
+        required: true
+      website_url:
+        description: "Full website URL (e.g., https://delshiz.com)"
+        required: true
+      brand_color:
+        description: "Hex color code for branding (e.g., #FF0000)"
+        required: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     env:
-      SITE_NAME: ${{ github.event.client_payload.site_name }}
-      WEBSITE_URL: ${{ github.event.client_payload.website_url }}
-      BRAND_COLOR: ${{ github.event.client_payload.brand_color }}
+      SITE_NAME: ${{ github.event.inputs.site_name }}
+      WEBSITE_URL: ${{ github.event.inputs.website_url }}
+      BRAND_COLOR: ${{ github.event.inputs.brand_color }}
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Set up Python for image generation
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: 3.9
 
     - name: Install Pillow
       run: pip install pillow
 
     - name: Generate icon and splash images
-      run: |
-        python generate_images.py "${{ env.SITE_NAME }}" "${{ env.BRAND_COLOR }}"
-
-    - name: Set up JDK
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'temurin'
+      run: python generate_images.py "${{ env.SITE_NAME }}" "${{ env.BRAND_COLOR }}"
 
     - name: Clone apk-template
       run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Update package name and website URL
+    - name: Ensure drawable folder exists and copy splash
+      run: |
+        mkdir -p apk-template/app/src/main/res/drawable
+        cp output/${{ env.SITE_NAME }}-splash-1280x1920.png apk-template/app/src/main/res/drawable/splash.png
+
+    - name: Copy icon to all mipmap sizes
+      run: |
+        for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+          mkdir -p apk-template/app/src/main/res/mipmap-$d
+          cp output/${{ env.SITE_NAME }}-512x512.png apk-template/app/src/main/res/mipmap-$d/ic_launcher.png
+        done
+
+    - name: Update package name and URL
       run: |
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"${{ env.WEBSITE_URL }}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.SITE_NAME }}</string>|" apk-template/app/src/main/res/values/strings.xml
 
-    - name: Replace icon and splash
-      run: |
-        for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
-          cp "output/${{ env.SITE_NAME }}-512x512.png" "apk-template/app/src/main/res/mipmap-$d/ic_launcher.png"
-        done
-        cp "output/${{ env.SITE_NAME }}-splash-1280x1920.png" "apk-template/app/src/main/res/drawable/splash.png"
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
 
     - name: Build APK
       working-directory: apk-template
