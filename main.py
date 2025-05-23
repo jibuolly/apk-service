@@ -24,6 +24,7 @@ async def handle_form(request: Request):
 
     data = await request.form()
     website_url = data.get("website_url", "").strip()
+
     if not website_url.startswith("http://") and not website_url.startswith("https://"):
         website_url = f"https://{website_url}"
 
@@ -42,14 +43,14 @@ async def handle_form(request: Request):
 
     icon_path = output_dir / f"{site_name}-512x512.png"
     splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
-    print(f"✅ Icon created at: {icon_path}")
-    print(f"✅ Splash created at: {splash_path}")
 
     if not icon_path.exists():
         raise FileNotFoundError(f"❌ Icon not found at {icon_path}")
     if not splash_path.exists():
         raise FileNotFoundError(f"❌ Splash not found at {splash_path}")
 
+    print(f"✅ Icon created at: {icon_path}")
+    print(f"✅ Splash created at: {splash_path}")
 
     tmp_dir = Path("/tmp") / site_name
     if tmp_dir.exists():
@@ -61,6 +62,7 @@ async def handle_form(request: Request):
 
     app_dir = tmp_dir / "apk-template"
 
+    # Copy icon to all mipmap folders
     icon_target_dirs = [
         "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
         "mipmap-xxhdpi", "mipmap-xxxhdpi"
@@ -71,11 +73,13 @@ async def handle_form(request: Request):
         shutil.copy(icon_path, target_dir / "ic_launcher.png")
         print(f"✅ Copied icon to {target_dir / 'ic_launcher.png'}")
 
+    # Copy splash
     splash_target = app_dir / "app" / "src" / "main" / "res" / "drawable"
     splash_target.mkdir(parents=True, exist_ok=True)
     shutil.copy(splash_path, splash_target / "splash.png")
     print(f"✅ Copied splash to {splash_target / 'splash.png'}")
 
+    # Update manifest and code
     manifest_path = app_dir / "app" / "src" / "main" / "AndroidManifest.xml"
     main_activity_path = app_dir / "app" / "src" / "main" / "java" / "com" / "wixify" / "android" / "MainActivity.java"
     strings_xml_path = app_dir / "app" / "src" / "main" / "res" / "values" / "strings.xml"
@@ -90,7 +94,7 @@ async def handle_form(request: Request):
     main_activity_path.write_text(main_code)
 
     strings = strings_xml_path.read_text()
-    strings = re.sub(r'<string name="app_name">.*?</string>', f'<string name="app_name">{site_name.title()}</string>', strings)
+    strings = re.sub(r'<string name="app_name">.*?</string>', f'<string name="app_name">{app_label}</string>', strings)
     strings_xml_path.write_text(strings)
 
     print("✅ Updated package name, URL, and app label")
