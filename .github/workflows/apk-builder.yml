@@ -21,7 +21,6 @@ jobs:
       SITE_NAME: ${{ github.event.inputs.site_name }}
       WEBSITE_URL: ${{ github.event.inputs.website_url }}
       BRAND_COLOR: ${{ github.event.inputs.brand_color }}
-      APP_LABEL: ${{ github.event.inputs.site_name }}
 
     steps:
     - name: Checkout Repository
@@ -53,12 +52,13 @@ jobs:
           cp output/${{ env.SITE_NAME }}-512x512.png apk-template/app/src/main/res/mipmap-$d/ic_launcher.png
         done
 
-    - name: Update package name, URL, and app label
+    - name: Update package name and URL and app label
       run: |
+        APP_LABEL="$(echo ${{ env.SITE_NAME }} | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"${{ env.WEBSITE_URL }}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.APP_LABEL }}</string>|" apk-template/app/src/main/res/values/strings.xml
+        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">$APP_LABEL</string>|" apk-template/app/src/main/res/values/strings.xml
 
     - name: Set up JDK
       uses: actions/setup-java@v3
@@ -73,8 +73,11 @@ jobs:
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
-    - name: Upload APK Artifact
+    - name: Rename and upload APK
+      run: |
+        mkdir -p output_apk
+        cp apk-template/app/build/outputs/apk/debug/app-debug.apk output_apk/${{ env.SITE_NAME }}.apk
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.SITE_NAME }}.apk
-        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
+        path: output_apk/${{ env.SITE_NAME }}.apk
