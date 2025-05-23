@@ -48,11 +48,17 @@ def generate_splash(sitename, color_hex):
 
 if __name__ == "__main__":
     import sys
+    import os
+
     sitename = sys.argv[1]
     color = sys.argv[2]
+
+    # Ensure output folder exists
+    os.makedirs("output", exist_ok=True)
 
     icon = generate_icon(sitename, color)
     icon.save(f"output/{sitename}-512x512.png")
 
     splash = generate_splash(sitename, color)
     splash.save(f"output/{sitename}-splash-1280x1920.png")
+
