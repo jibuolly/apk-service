@@ -10,7 +10,7 @@ def generate_icon(site_name, color_hex):
     size = (512, 512)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
-    font_size = 130
+    font_size = 300
 
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
