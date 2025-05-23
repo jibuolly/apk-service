@@ -73,10 +73,12 @@ jobs:
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
-    - name: Rename and upload APK
+    - name: Rename APK for download
       run: |
         mkdir -p output_apk
         cp apk-template/app/build/outputs/apk/debug/app-debug.apk output_apk/${{ env.SITE_NAME }}.apk
+
+    - name: Upload Renamed APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.SITE_NAME }}.apk
