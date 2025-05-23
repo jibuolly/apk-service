@@ -1,30 +1,29 @@
 from PIL import Image, ImageDraw, ImageFont
-import sys
 import os
+import sys
 
-def get_text_color(bg_hex):
-    # Convert hex color to RGB
-    bg_hex = bg_hex.lstrip("#")
-    r, g, b = tuple(int(bg_hex[i:i+2], 16) for i in (0, 2, 4))
-    # Calculate brightness (YIQ formula)
-    brightness = ((r*299)+(g*587)+(b*114))/1000
-    return "black" if brightness > 128 else "white"
+def get_text_color(hex_color):
+    hex_color = hex_color.lstrip("#")
+    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    luminance = 0.299 * r + 0.587 * g + 0.114 * b
+    return "#000000" if luminance > 186 else "#FFFFFF"
 
 def generate_icon(sitename, color_hex):
     size = (512, 512)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
-
+    text = sitename[0].upper()
     font_size = 280
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-    text = sitename[0].upper()
+    text_color = get_text_color(color_hex)
+
+    # Get bounding box of text
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
     y = (size[1] - text_height) // 2
 
-    text_color = get_text_color(color_hex)
     draw.text((x, y), text, fill=text_color, font=font)
     return image
 
@@ -32,17 +31,17 @@ def generate_splash(sitename, color_hex):
     size = (1280, 1920)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
-
-    font_size = 220
+    text = sitename.capitalize()
+    font_size = 150
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-    text = sitename[0].upper()
+    text_color = get_text_color(color_hex)
+
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
     y = (size[1] - text_height) // 2
 
-    text_color = get_text_color(color_hex)
     draw.text((x, y), text, fill=text_color, font=font)
     return image
 
