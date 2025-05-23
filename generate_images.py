@@ -1,59 +1,55 @@
 from PIL import Image, ImageDraw, ImageFont
+import sys
 import os
+
+def get_text_color(bg_hex):
+    # Convert hex color to RGB
+    bg_hex = bg_hex.lstrip("#")
+    r, g, b = tuple(int(bg_hex[i:i+2], 16) for i in (0, 2, 4))
+    # Calculate brightness (YIQ formula)
+    brightness = ((r*299)+(g*587)+(b*114))/1000
+    return "black" if brightness > 128 else "white"
 
 def generate_icon(sitename, color_hex):
     size = (512, 512)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
 
-    # Determine white or black font color based on background brightness
-    r, g, b = Image.new("RGB", (1, 1), color_hex).getpixel((0, 0))
-    brightness = (r*299 + g*587 + b*114) / 1000
-    text_color = "black" if brightness > 186 else "white"
-
     font_size = 280
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
     text = sitename[0].upper()
-
-    # Use textbbox for compatibility with newer Pillow
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
     y = (size[1] - text_height) // 2
 
+    text_color = get_text_color(color_hex)
     draw.text((x, y), text, fill=text_color, font=font)
     return image
-
 
 def generate_splash(sitename, color_hex):
     size = (1280, 1920)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
 
-    # Determine white or black font color based on background brightness
-    r, g, b = Image.new("RGB", (1, 1), color_hex).getpixel((0, 0))
-    brightness = (r*299 + g*587 + b*114) / 1000
-    text_color = "black" if brightness > 186 else "white"
-
-    font_size = 160
+    font_size = 220
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-    text = sitename.capitalize()
-    text_width, text_height = draw.textsize(text, font=font)
+    text = sitename[0].upper()
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
     y = (size[1] - text_height) // 2
 
+    text_color = get_text_color(color_hex)
     draw.text((x, y), text, fill=text_color, font=font)
     return image
 
 if __name__ == "__main__":
-    import sys
-    import os
-
     sitename = sys.argv[1]
     color = sys.argv[2]
 
-    # Ensure output folder exists
     os.makedirs("output", exist_ok=True)
 
     icon = generate_icon(sitename, color)
@@ -61,4 +57,3 @@ if __name__ == "__main__":
 
     splash = generate_splash(sitename, color)
     splash.save(f"output/{sitename}-splash-1280x1920.png")
-
