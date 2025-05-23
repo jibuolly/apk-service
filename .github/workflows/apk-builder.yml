@@ -1,7 +1,14 @@
 name: Build APK
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      site_name:
+        description: "Domain name (e.g., delshiz)"
+        required: true
+      website_url:
+        description: "Full website URL (e.g., https://delshiz.com)"
+        required: true
 
 jobs:
   build:
