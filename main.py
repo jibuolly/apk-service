@@ -25,7 +25,7 @@ async def handle_form(request: Request):
     data = await request.form()
     website_url = data.get("website_url", "").strip()
     if not website_url.startswith("http://") and not website_url.startswith("https://"):
-    website_url = f"https://{website_url}"
+        website_url = f"https://{website_url}"
 
     site_name = re.sub(r"^https?://", "", website_url).split(".")[0]
     app_label = site_name.capitalize()
