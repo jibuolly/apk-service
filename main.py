@@ -51,6 +51,9 @@ async def handle_form(request: Request):
         "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
         "mipmap-xxhdpi", "mipmap-xxxhdpi"
     ]
+
+    app_dir = tmp_dir / "apk-template"
+    
     for d in icon_target_dirs:
         target_dir = app_dir / "app" / "src" / "main" / "res" / d
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -71,7 +74,6 @@ async def handle_form(request: Request):
     os.chdir(tmp_dir)
     subprocess.run(["git", "clone", "--depth", "1", "https://github.com/jibuolly/apk-template.git"], check=True)
 
-    app_dir = tmp_dir / "apk-template"
     icon_target_dirs = [
         "mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi",
         "mipmap-xxhdpi", "mipmap-xxxhdpi"
