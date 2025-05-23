@@ -41,8 +41,17 @@ async def handle_form(request: Request):
     output_dir = Path("/app/output")
     output_dir.mkdir(exist_ok=True)
 
+    import time
+
     icon_path = output_dir / f"{site_name}-512x512.png"
     splash_path = output_dir / f"{site_name}-splash-1280x1920.png"
+
+    # Retry up to 5 times to wait for icon and splash to appear
+    for i in range(5):
+        if icon_path.exists() and splash_path.exists():
+            break
+        print(f"⏳ Waiting for icon/splash to be ready... Retry {i+1}/5")
+        time.sleep(1)
 
     if not icon_path.exists():
         raise FileNotFoundError(f"❌ Icon not found at {icon_path}")
