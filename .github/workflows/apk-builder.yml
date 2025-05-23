@@ -65,6 +65,9 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
 
+    - name: Set execute permission for gradlew
+      run: chmod +x apk-template/gradlew
+
     - name: Build APK
       working-directory: apk-template
       run: ./gradlew assembleDebug
