@@ -129,3 +129,5 @@ async def handle_form(request: Request):
         print(f"❌ Failed to trigger GitHub Actions: {e}")
 
     return JSONResponse(content={"status": "success"})
+
+    # Trigger test
