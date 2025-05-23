@@ -21,10 +21,9 @@ jobs:
       SITE_NAME: ${{ github.event.inputs.site_name }}
       WEBSITE_URL: ${{ github.event.inputs.website_url }}
       BRAND_COLOR: ${{ github.event.inputs.brand_color }}
-      APP_LABEL: ${{ github.event.inputs.site_name }}
 
     steps:
-    - name: Checkout repository
+    - name: Checkout Repository
       uses: actions/checkout@v3
 
     - name: Set up Python
@@ -35,7 +34,7 @@ jobs:
     - name: Install Pillow
       run: pip install pillow
 
-    - name: Generate icon and splash
+    - name: Generate icon and splash images
       run: python generate_images.py "${{ env.SITE_NAME }}" "${{ env.BRAND_COLOR }}"
 
     - name: Clone apk-template
@@ -53,7 +52,7 @@ jobs:
           cp output/${{ env.SITE_NAME }}-512x512.png apk-template/app/src/main/res/mipmap-$d/ic_launcher.png
         done
 
-    - name: Update package name, label and URL
+    - name: Update package name, URL, and app label
       run: |
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
@@ -73,8 +72,13 @@ jobs:
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
-    - name: Upload APK directly as artifact
+    - name: Rename APK
+      run: |
+        mkdir -p output_apk
+        cp apk-template/app/build/outputs/apk/debug/app-debug.apk output_apk/${{ env.SITE_NAME }}.apk
+
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.SITE_NAME }}.apk
-        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
+        path: output_apk/${{ env.SITE_NAME }}.apk
