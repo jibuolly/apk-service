@@ -54,10 +54,11 @@ jobs:
 
     - name: Update package name, URL, and app label
       run: |
+        APP_LABEL="$(echo "${{ env.SITE_NAME }}" | awk '{print toupper(substr($0,1,1)) tolower(substr($0,2))}')"
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
         sed -i "s|loadUrl(\"[^\"]*\")|loadUrl(\"${{ env.WEBSITE_URL }}\")|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.SITE_NAME^ }}</string>|" apk-template/app/src/main/res/values/strings.xml
+        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${APP_LABEL}</string>|" apk-template/app/src/main/res/values/strings.xml
 
     - name: Set up JDK
       uses: actions/setup-java@v3
