@@ -52,12 +52,12 @@ jobs:
           cp output/${{ env.SITE_NAME }}-512x512.png apk-template/app/src/main/res/mipmap-$d/ic_launcher.png
         done
 
-    - name: Update package name, label, and inputUrl
+    - name: Update package name, URL, and label
       run: |
         sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|String inputUrl = .*;|String inputUrl = \"${{ env.WEBSITE_URL }}\";|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.SITE_NAME }}</string>|" apk-template/app/src/main/res/values/strings.xml
+        sed -i "s|String inputUrl = .*;|String inputUrl = \\\"${{ env.WEBSITE_URL }}\\\";|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">${{ env.SITE_NAME^ }}</string>|" apk-template/app/src/main/res/values/strings.xml
 
     - name: Set up JDK
       uses: actions/setup-java@v3
@@ -72,8 +72,8 @@ jobs:
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v1
       with:
-        name: ${{ env.SITE_NAME }}.apk
-        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
+        tag_name: release-${{ github.run_number }}
+        files: apk-template/app/build/outputs/apk/debug/app-debug.apk
