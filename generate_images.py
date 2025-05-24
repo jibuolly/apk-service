@@ -15,7 +15,7 @@ def generate_icon(sitename, color_hex):
 
     font_size = 280
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-    text = sitename[0].upper()
+    text = sitename.strip().capitalize()[0]
     text_color = get_text_color(color_hex)
 
     bbox = draw.textbbox((0, 0), text, font=font)
