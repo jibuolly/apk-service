@@ -24,8 +24,11 @@ async def handle_form(request: Request):
 
     data = await request.form()
     website_url = data.get("website_url", "").strip()
+
+    # ✅ FIX: Ensure protocol exists (http/https)
     if not website_url.startswith("http://") and not website_url.startswith("https://"):
         website_url = f"https://{website_url}"
+
     site_name = re.sub(r"^https?://", "", website_url).split(".")[0]
     brand_color = data.get("brand_color", "#000000")
     email = data.get("email", "").strip()
