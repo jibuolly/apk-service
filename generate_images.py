@@ -2,11 +2,11 @@ from PIL import Image, ImageDraw, ImageFont
 import sys
 import os
 
-def is_dark_color(hex_color):
-    hex_color = hex_color.lstrip("#")
-    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-    luminance = 0.299 * r + 0.587 * g + 0.114 * b
-    return luminance < 186
+def get_text_color(bg_hex):
+    bg_hex = bg_hex.lstrip("#")
+    r, g, b = tuple(int(bg_hex[i:i+2], 16) for i in (0, 2, 4))
+    brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return "#000000" if brightness > 128 else "#FFFFFF"
 
 def generate_icon(sitename, color_hex):
     size = (512, 512)
@@ -14,16 +14,15 @@ def generate_icon(sitename, color_hex):
     draw = ImageDraw.Draw(image)
 
     font_size = 280
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    font = ImageFont.truetype(font_path, font_size)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
     text = sitename[0].upper()
-    text_color = "#FFFFFF" if is_dark_color(color_hex) else "#000000"
+    text_color = get_text_color(color_hex)
 
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
-    y = (size[1] - text_height) // 2  # ✅ properly centered now
+    y = (size[1] - text_height) // 2
 
     draw.text((x, y), text, fill=text_color, font=font)
     return image
@@ -33,11 +32,10 @@ def generate_splash(sitename, color_hex):
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
 
-    font_size = 240
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    font = ImageFont.truetype(font_path, font_size)
+    font_size = 150
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
     text = sitename.capitalize()
-    text_color = "#FFFFFF" if is_dark_color(color_hex) else "#000000"
+    text_color = get_text_color(color_hex)
 
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
