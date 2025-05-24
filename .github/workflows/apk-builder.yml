@@ -10,7 +10,7 @@ on:
         description: "Full website URL (e.g., https://delshiz.com)"
         required: true
       brand_color:
-        description: "Hex color code (e.g., #FF0000)"
+        description: "Hex color code for branding (e.g., #FF0000)"
         required: true
 
 jobs:
@@ -21,28 +21,26 @@ jobs:
       SITE_NAME: ${{ github.event.inputs.site_name }}
       WEBSITE_URL: ${{ github.event.inputs.website_url }}
       BRAND_COLOR: ${{ github.event.inputs.brand_color }}
-      APK_NAME: ${{ github.event.inputs.site_name }}.apk
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Set up Python and Pillow
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.9
 
-    - run: pip install pillow
+    - name: Install Pillow
+      run: pip install pillow
 
     - name: Generate icon and splash images
-      run: |
-        mkdir -p output
-        python generate_images.py "${{ env.SITE_NAME }}" "${{ env.BRAND_COLOR }}"
+      run: python generate_images.py "${{ env.SITE_NAME }}" "${{ env.BRAND_COLOR }}"
 
     - name: Clone apk-template
       run: git clone --depth 1 https://github.com/jibuolly/apk-template.git
 
-    - name: Copy splash
+    - name: Ensure drawable folder exists and copy splash
       run: |
         mkdir -p apk-template/app/src/main/res/drawable
         cp output/${{ env.SITE_NAME }}-splash-1280x1920.png apk-template/app/src/main/res/drawable/splash.png
@@ -54,13 +52,12 @@ jobs:
           cp output/${{ env.SITE_NAME }}-512x512.png apk-template/app/src/main/res/mipmap-$d/ic_launcher.png
         done
 
-    - name: Update package name, app label, and URL
+    - name: Update package name, label, and inputUrl
       run: |
-        sed -i "s/package=\"[^\"]*\"/package=\"com.${{ env.SITE_NAME }}.android\"/" apk-template/app/src/main/AndroidManifest.xml
+        sed -i "s/package=\\"[^\\"]*\\"/package=\\"com.${{ env.SITE_NAME }}.android\\"/" apk-template/app/src/main/AndroidManifest.xml
         sed -i "s/package .*;/package com.${{ env.SITE_NAME }}.android;/" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        sed -i 's|loadUrl(".*")|loadUrl("${{ env.WEBSITE_URL }}")|' apk-template/app/src/main/java/com/wixify/android/MainActivity.java
-        APP_LABEL="$(echo "${{ env.SITE_NAME }}" | sed -E 's/(^.|[^a-zA-Z0-9]+.)/\U\1/g')"
-        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">$APP_LABEL</string>|" apk-template/app/src/main/res/values/strings.xml
+        sed -i "s|String inputUrl = .*;|String inputUrl = \\\"${{ env.WEBSITE_URL }}\\\";|" apk-template/app/src/main/java/com/wixify/android/MainActivity.java
+        sed -i "s|<string name=\\"app_name\\">.*</string>|<string name=\\"app_name\\">${{ env.SITE_NAME^ }}</string>|" apk-template/app/src/main/res/values/strings.xml
 
     - name: Set up JDK
       uses: actions/setup-java@v3
@@ -68,23 +65,15 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
 
-    - name: Grant permission for gradlew
+    - name: Set execute permission for gradlew
       run: chmod +x apk-template/gradlew
 
     - name: Build APK
       working-directory: apk-template
       run: ./gradlew assembleDebug
 
-    - name: Rename APK
-      run: |
-        mkdir -p release
-        cp apk-template/app/build/outputs/apk/debug/app-debug.apk release/${{ env.APK_NAME }}
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: release-${{ github.run_number }}
-        name: APK Release ${{ github.run_number }}
-        files: release/${{ env.APK_NAME }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: ${{ env.SITE_NAME }}.apk
+        path: apk-template/app/build/outputs/apk/debug/app-debug.apk
