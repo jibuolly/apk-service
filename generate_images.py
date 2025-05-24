@@ -3,7 +3,6 @@ import sys
 import os
 
 def get_text_color(bg_color):
-    # Calculate brightness to determine text color
     bg_color = bg_color.lstrip("#")
     r, g, b = tuple(int(bg_color[i:i+2], 16) for i in (0, 2, 4))
     brightness = (r * 299 + g * 587 + b * 114) / 1000
@@ -19,12 +18,11 @@ def generate_icon(sitename, color_hex):
     text = sitename[0].upper()
     text_color = get_text_color(color_hex)
 
-    # Accurate vertical & horizontal centering using textbbox
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     x = (size[0] - text_width) // 2
-    y = (size[1] - text_height) // 2
+    y = (size[1] - text_height) // 2  # ✅ Centered vertically now
 
     draw.text((x, y), text, fill=text_color, font=font)
     return image
