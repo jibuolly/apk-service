@@ -1,23 +1,22 @@
 from PIL import Image, ImageDraw, ImageFont
-import os
-import sys
-
-def get_text_color(hex_color):
-    hex_color = hex_color.lstrip("#")
-    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-    luminance = 0.299 * r + 0.587 * g + 0.114 * b
-    return "#000000" if luminance > 186 else "#FFFFFF"
 
 def generate_icon(sitename, color_hex):
     size = (512, 512)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
-    text = sitename[0].upper()
+
+    # Choose black or white text based on background brightness
+    def is_light(hex_color):
+        hex_color = hex_color.lstrip("#")
+        r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        brightness = (r*299 + g*587 + b*114) / 1000
+        return brightness > 150
+
+    text_color = "#000000" if is_light(color_hex) else "#FFFFFF"
+
     font_size = 280
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-    text_color = get_text_color(color_hex)
-
-    # Get bounding box of text
+    text = sitename[0].upper()
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
@@ -31,11 +30,18 @@ def generate_splash(sitename, color_hex):
     size = (1280, 1920)
     image = Image.new("RGB", size, color_hex)
     draw = ImageDraw.Draw(image)
-    text = sitename.capitalize()
-    font_size = 150
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-    text_color = get_text_color(color_hex)
 
+    def is_light(hex_color):
+        hex_color = hex_color.lstrip("#")
+        r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        brightness = (r*299 + g*587 + b*114) / 1000
+        return brightness > 150
+
+    text_color = "#000000" if is_light(color_hex) else "#FFFFFF"
+
+    font_size = 180
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+    text = sitename[0].upper()
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
@@ -46,6 +52,9 @@ def generate_splash(sitename, color_hex):
     return image
 
 if __name__ == "__main__":
+    import os
+    import sys
+
     sitename = sys.argv[1]
     color = sys.argv[2]
 
